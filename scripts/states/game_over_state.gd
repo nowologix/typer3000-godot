@@ -12,6 +12,7 @@ const COMMANDS := {
 @onready var wave_label: Label = $CenterContainer/VBoxContainer/StatsContainer/WaveValue
 @onready var accuracy_label: Label = $CenterContainer/VBoxContainer/StatsContainer/AccuracyValue
 @onready var enemies_label: Label = $CenterContainer/VBoxContainer/StatsContainer/EnemiesValue
+@onready var video_player: VideoStreamPlayer = $VideoBackground
 
 var typed_buffer: String = ""
 var final_stats: Dictionary = {}
@@ -19,6 +20,10 @@ var final_stats: Dictionary = {}
 func _ready() -> void:
 	typed_buffer = ""
 	update_display()
+	
+	# Connect video loop signal
+	if video_player:
+		video_player.finished.connect(_on_video_finished)
 
 func on_enter(params: Dictionary) -> void:
 	DebugHelper.log_info("GameOverState entered")
@@ -27,6 +32,10 @@ func on_enter(params: Dictionary) -> void:
 	update_display()
 	display_stats()
 	save_results()
+	
+	# Start background video
+	if video_player:
+		video_player.play()
 
 func on_exit() -> void:
 	DebugHelper.log_info("GameOverState exiting")
@@ -131,3 +140,8 @@ func retry_game() -> void:
 func go_to_menu() -> void:
 	DebugHelper.log_info("Going to menu")
 	StateManager.change_state("menu")
+
+func _on_video_finished() -> void:
+	# Loop the video
+	if video_player:
+		video_player.play()

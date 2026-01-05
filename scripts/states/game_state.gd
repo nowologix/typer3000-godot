@@ -71,6 +71,11 @@ func on_enter(_params: Dictionary) -> void:
 	TypingManager.reset_stats()
 	TypingManager.enable_typing()
 
+	# Setup WordSetLoader with saved language
+	var language = SaveManager.get_setting("language", "EN")
+	WordSetLoader.set_language_string(language)
+	WordSetLoader.reset_used_words()
+
 	# Setup wave manager
 	if wave_manager:
 		wave_manager.setup(enemy_container, portal)

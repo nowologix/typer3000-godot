@@ -26,6 +26,7 @@ const TYPED_EFFECT_END := "[/wave]"
 @onready var versus_prompt: RichTextLabel = $CenterContainer/VBoxContainer/VersusPrompt
 @onready var settings_prompt: RichTextLabel = $CenterContainer/VBoxContainer/SettingsPrompt
 @onready var quit_prompt: RichTextLabel = $CenterContainer/VBoxContainer/QuitPrompt
+@onready var video_player: VideoStreamPlayer = $VideoBackground
 
 var typed_buffer: String = ""
 var pulse_time: float = 0.0
@@ -37,12 +38,20 @@ func _ready() -> void:
 	DebugHelper.log_info("MenuState ready")
 	typed_buffer = ""
 	update_display()
+	
+	# Connect video loop signal
+	if video_player:
+		video_player.finished.connect(_on_video_finished)
 
 func on_enter(_params: Dictionary) -> void:
 	DebugHelper.log_info("MenuState entered")
 	typed_buffer = ""
 	update_display()
 	SoundManager.play_menu_music()
+	
+	# Start background video
+	if video_player:
+		video_player.play()
 
 func on_exit() -> void:
 	DebugHelper.log_info("MenuState exiting")
@@ -161,3 +170,8 @@ func open_settings() -> void:
 func quit_game() -> void:
 	DebugHelper.log_info("Quitting game")
 	get_tree().quit()
+
+func _on_video_finished() -> void:
+	# Loop the video
+	if video_player:
+		video_player.play()

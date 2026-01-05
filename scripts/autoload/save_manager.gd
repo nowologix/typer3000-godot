@@ -127,7 +127,12 @@ func apply_settings() -> void:
 	SoundManager.set_master_volume(settings.get("master_volume", 1.0))
 	SoundManager.set_music_volume(settings.get("music_volume", 0.7))
 	SoundManager.set_sfx_volume(settings.get("sfx_volume", 1.0))
-	
+
+	# Apply language
+	var language = settings.get("language", "EN")
+	if WordSetLoader:
+		WordSetLoader.set_language_string(language)
+
 	settings_changed.emit()
 	DebugHelper.log_info("SaveManager: Settings applied")
 

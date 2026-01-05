@@ -37,6 +37,7 @@ TowerManager="*res://scripts/systems/tower_manager.gd"
 NetworkManager="*res://scripts/autoload/network_manager.gd"
 WordWarManager="*res://scripts/autoload/word_war_manager.gd"
 BuildManager="*res://scripts/autoload/build_manager.gd"
+WordSetLoader="*res://scripts/autoload/word_set_loader.gd"
 
 [display]
 
