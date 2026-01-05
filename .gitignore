@@ -1,0 +1,20 @@
+# Godot 4+ specific ignores
+.godot/
+
+# Godot-specific ignores
+*.translation
+
+# Imported resources
+*.import
+
+# Build exports
+export/
+exports/
+build/
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Editor backup files
+*~

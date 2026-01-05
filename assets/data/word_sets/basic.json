@@ -1,0 +1,36 @@
+{
+  "name": "Basic",
+  "description": "Standard word set for Typer3000",
+  "words": {
+    "easy": [
+      "CAT", "DOG", "RUN", "HIT", "WIN", "TOP", "SUN", "FUN", "CUP", "BAT",
+      "HAT", "MAP", "TAP", "RAT", "SAT", "PAN", "CAN", "MAN", "TAN", "VAN",
+      "BIG", "DIG", "FIG", "PIG", "RIG", "WIG", "BIT", "FIT", "HIT", "KIT",
+      "SIT", "WIT", "BUS", "CUT", "GUT", "HUT", "JUT", "NUT", "PUT", "RUT"
+    ],
+    "medium": [
+      "FIRE", "CODE", "GAME", "TYPE", "WORD", "FAST", "SLOW", "HERO", "ZERO", "BYTE",
+      "DATA", "LOOP", "FUNC", "NODE", "TREE", "PATH", "JUMP", "DASH", "BASH", "CASH",
+      "HASH", "MASH", "RASH", "WASH", "BEAM", "TEAM", "SEAM", "FOAM", "ROAM", "LAMP",
+      "DAMP", "CAMP", "RAMP", "VAMP", "BUMP", "DUMP", "JUMP", "LUMP", "PUMP", "THUD"
+    ],
+    "hard": [
+      "ARRAY", "CLASS", "DEBUG", "ERROR", "FLOAT", "INPUT", "LOGIC", "MOUSE", "PRINT", "QUERY",
+      "SPAWN", "ENEMY", "PORTAL", "SCORE", "COMBO", "POWER", "SHIELD", "TOWER", "BLAST", "CRASH",
+      "FLASH", "SLASH", "SMASH", "STASH", "TRASH", "BRAIN", "CHAIN", "CLAIM", "DRAIN", "GRAIN",
+      "PLAIN", "SLAIN", "SPAIN", "SPRAIN", "TRAIN", "BEACH", "PEACH", "REACH", "TEACH", "LEACH"
+    ],
+    "expert": [
+      "RETURN", "STRING", "UPDATE", "VECTOR", "WHILE", "YIELD", "BREAK", "SWITCH", "EXPORT", "IMPORT",
+      "GLOBAL", "STATIC", "PRIVATE", "PUBLIC", "STRUCT", "OBJECT", "METHOD", "SIGNAL", "CONNECT", "PROCESS",
+      "PHYSICS", "RENDER", "SHADER", "TEXTURE", "SPRITE", "ANIMATION", "TILEMAP", "COLLISION", "RAYCAST", "PARTICLE",
+      "FUNCTION", "VARIABLE", "CONSTANT", "BOOLEAN", "INTEGER", "DECIMAL", "POINTER", "REFERENCE", "INSTANCE", "ABSTRACT"
+    ]
+  },
+  "difficulty_mapping": {
+    "wave_1_3": "easy",
+    "wave_4_6": "medium",
+    "wave_7_10": "hard",
+    "wave_11_plus": "expert"
+  }
+}

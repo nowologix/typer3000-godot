@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <rect width="128" height="128" fill="#0d0d1a"/>
+  <text x="64" y="45" font-family="monospace" font-size="24" fill="#00e5ff" text-anchor="middle" font-weight="bold">TYPER</text>
+  <text x="64" y="75" font-family="monospace" font-size="24" fill="#7cff00" text-anchor="middle" font-weight="bold">3000</text>
+  <text x="64" y="105" font-family="monospace" font-size="14" fill="#ff2a8a" text-anchor="middle">GODOT</text>
+</svg>

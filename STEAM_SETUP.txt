@@ -1,0 +1,236 @@
+TYPER3000 - GODOTSTEAM SETUP GUIDE
+====================================
+
+This guide covers setting up GodotSteam for Steam integration
+including achievements, leaderboards, and multiplayer.
+
+============================================
+STEP 1: REGISTER ON STEAMWORKS
+============================================
+
+1. Go to https://partner.steamgames.com/
+2. Pay the $100 Steam Direct fee (one-time)
+3. Create your app and get an App ID
+4. Wait for Steamworks approval
+
+Keep your App ID handy - you'll need it later.
+
+============================================
+STEP 2: DOWNLOAD GODOTSTEAM
+============================================
+
+Option A: Pre-compiled Editor (Recommended for beginners)
+---------------------------------------------------------
+1. Go to https://godotsteam.com/
+2. Download the "Godot Engine + GodotSteam" package
+   - Choose Godot 4.x version matching your project
+   - Download both editor and export templates
+3. Extract and use this Godot editor instead of vanilla Godot
+
+Option B: GDExtension Plugin (Advanced)
+---------------------------------------
+1. Download from: https://github.com/GodotSteam/GodotSteam/releases
+2. Extract to your project's addons folder:
+   addons/
+     godotsteam/
+       godotsteam.gdextension
+       libgodotsteam.windows.x86_64.dll
+       libgodotsteam.linux.x86_64.so
+       libgodotsteam.macos.universal.dylib
+
+3. Enable in Project Settings > Plugins
+
+============================================
+STEP 3: CONFIGURE STEAM APP ID
+============================================
+
+1. Create a file named `steam_appid.txt` in your project root
+2. Add your Steam App ID (just the number):
+
+   Example content:
+   480
+
+   Note: 480 is Spacewar (Steam's test app), replace with your real ID
+
+3. For testing without a real App ID, use 480 (Spacewar)
+
+============================================
+STEP 4: SET UP ACHIEVEMENTS IN STEAMWORKS
+============================================
+
+1. Log in to Steamworks Partner Portal
+2. Go to your app > Stats & Achievements > Achievements
+3. Create achievements matching steam_manager.gd:
+
+   API Name              | Display Name       | Description
+   ----------------------------------------------------------------
+   first_blood           | First Blood        | Destroy your first enemy
+   wordsmith_bronze      | Bronze Wordsmith   | Type 100 words
+   wordsmith_silver      | Silver Wordsmith   | Type 500 words
+   wordsmith_gold        | Gold Wordsmith     | Type 1000 words
+   wordsmith_diamond     | Diamond Wordsmith  | Type 5000 words
+   survivor_5            | Survivor           | Survive 5 waves
+   survivor_10           | Veteran            | Survive 10 waves
+   survivor_20           | Champion           | Survive 20 waves
+   survivor_50           | Legend             | Survive 50 waves
+   combo_10              | On Fire            | Reach a 10x combo
+   combo_25              | Blazing            | Reach a 25x combo
+   combo_50              | Unstoppable        | Reach a 50x combo
+   combo_100             | Godlike            | Reach a 100x combo
+   score_1k              | Getting Started    | Score 1,000 points
+   score_10k             | Rising Star        | Score 10,000 points
+   score_100k            | Master Typist      | Score 100,000 points
+   perfect_wave          | Perfect Wave       | Complete a wave 100% accuracy
+   speed_demon           | Speed Demon        | Type 10+ letter word < 2 sec
+   comeback_kid          | Comeback Kid       | Win with portal HP at 1
+   marathon              | Marathon           | Play for 30 min in one session
+
+4. Upload achievement icons (jpg/png, recommended 64x64)
+5. Publish changes
+
+============================================
+STEP 5: SET UP LEADERBOARDS IN STEAMWORKS
+============================================
+
+1. Go to Stats & Achievements > Leaderboards
+2. Create leaderboards:
+
+   API Name           | Sort Method | Display Type
+   -------------------------------------------------
+   highscore_endless  | Descending  | Numeric
+   highscore_waves    | Descending  | Numeric
+   highscore_wordwar  | Descending  | Numeric
+   max_combo          | Descending  | Numeric
+
+3. Publish changes
+
+============================================
+STEP 6: TESTING LOCALLY
+============================================
+
+IMPORTANT: Steam Client must be running!
+
+1. Open Steam and log in
+2. Run your game from the Godot editor
+3. Check console output for:
+   "SteamManager: Initialized successfully"
+   "  App ID: 480" (or your app ID)
+   "  User: YourSteamName"
+
+If you see "GodotSteam not installed":
+- Make sure you're using the GodotSteam editor version
+- Or check that the GDExtension is properly loaded
+
+============================================
+STEP 7: EXPORTING FOR STEAM
+============================================
+
+1. Export Templates:
+   - Download GodotSteam export templates from godotsteam.com
+   - Or build your own from source
+
+2. Install in Godot:
+   Editor > Manage Export Templates > Install from File
+
+3. Export Settings:
+   - Create Windows Desktop export preset
+   - Enable "Embed PCK"
+   - Add custom files to include:
+     - steam_appid.txt
+
+4. Include Steamworks SDK:
+   Copy these files next to your .exe:
+   - steam_api64.dll (Windows)
+   - libsteam_api.so (Linux)
+   - libsteam_api.dylib (macOS)
+
+   Get from: https://partner.steamgames.com/doc/sdk
+
+============================================
+STEP 8: STEAM DECK SUPPORT
+============================================
+
+Typer3000 should work on Steam Deck with these settings:
+
+1. Project Settings > Display > Window:
+   - Size: 1280x800 (Steam Deck native)
+   - Stretch Mode: viewport
+   - Stretch Aspect: keep
+
+2. Test with:
+   - Full keyboard input
+   - Controller typing (on-screen keyboard)
+
+3. Add Steam Deck as a platform in Steamworks
+
+============================================
+TROUBLESHOOTING
+============================================
+
+Problem: "GodotSteam not installed" error
+Solution:
+  - Use GodotSteam editor, not vanilla Godot
+  - Check GDExtension path is correct
+
+Problem: Steam not initializing
+Solution:
+  - Ensure Steam client is running
+  - Check steam_appid.txt exists and has correct ID
+  - Verify you own the game on your Steam account
+
+Problem: Achievements not unlocking
+Solution:
+  - Check achievement API names match exactly
+  - Make sure you called Steam.storeStats()
+  - Verify achievements are published in Steamworks
+
+Problem: Leaderboards not working
+Solution:
+  - Leaderboards may take a few minutes to create
+  - Check API names match exactly
+  - Ensure leaderboards are published
+
+============================================
+CODE REFERENCE
+============================================
+
+The SteamManager autoload (scripts/autoload/steam_manager.gd)
+handles all Steam integration:
+
+  # Check if Steam is running
+  SteamManager.is_steam_running()
+
+  # Get Steam username
+  SteamManager.get_steam_username()
+
+  # Unlock an achievement
+  SteamManager.unlock_achievement("FIRST_BLOOD")
+
+  # Submit high score
+  SteamManager.submit_leaderboard_score("highscore_endless", 50000)
+
+  # Request leaderboard data
+  SteamManager.request_leaderboard_scores("highscore_endless")
+  # Listen for: SignalBus.leaderboard_received
+
+  # Achievement unlock notification
+  # Listen for: SignalBus.achievement_unlocked
+
+============================================
+RESOURCES
+============================================
+
+GodotSteam Documentation:
+  https://godotsteam.com/tutorials/
+
+GodotSteam GitHub:
+  https://github.com/GodotSteam/GodotSteam
+
+Steamworks Documentation:
+  https://partner.steamgames.com/doc/home
+
+Steam Achievement Icons:
+  https://partner.steamgames.com/doc/features/achievements
+
+Leaderboards:
+  https://partner.steamgames.com/doc/features/leaderboards

@@ -1,0 +1,112 @@
+[gd_scene load_steps=2 format=3 uid="uid://settings_state"]
+
+[ext_resource type="Script" path="res://scripts/states/settings_state.gd" id="1_settings"]
+
+[node name="SettingsState" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1_settings")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.05, 0.05, 0.1, 1)
+
+[node name="CenterContainer" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer"]
+layout_mode = 2
+theme_override_constants/separation = 15
+
+[node name="Title" type="Label" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0.898039, 1, 1)
+theme_override_font_sizes/font_size = 48
+text = "SETTINGS"
+horizontal_alignment = 1
+
+[node name="Spacer" type="Control" parent="CenterContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 20)
+layout_mode = 2
+
+[node name="ResolutionPrompt" type="RichTextLabel" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+bbcode_enabled = true
+text = "RESOLUTION  [1280x720]"
+fit_content = true
+scroll_active = false
+theme_override_font_sizes/normal_font_size = 28
+
+[node name="FullscreenPrompt" type="RichTextLabel" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+bbcode_enabled = true
+text = "FULLSCREEN  [OFF]"
+fit_content = true
+scroll_active = false
+theme_override_font_sizes/normal_font_size = 28
+
+[node name="MasterPrompt" type="RichTextLabel" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+bbcode_enabled = true
+text = "MASTER  [100%]"
+fit_content = true
+scroll_active = false
+theme_override_font_sizes/normal_font_size = 28
+
+[node name="MusicPrompt" type="RichTextLabel" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+bbcode_enabled = true
+text = "MUSIC  [70%]"
+fit_content = true
+scroll_active = false
+theme_override_font_sizes/normal_font_size = 28
+
+[node name="SfxPrompt" type="RichTextLabel" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+bbcode_enabled = true
+text = "SFX  [100%]"
+fit_content = true
+scroll_active = false
+theme_override_font_sizes/normal_font_size = 28
+
+[node name="LanguagePrompt" type="RichTextLabel" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+bbcode_enabled = true
+text = "LANGUAGE  [EN]"
+fit_content = true
+scroll_active = false
+theme_override_font_sizes/normal_font_size = 28
+
+[node name="BackPrompt" type="RichTextLabel" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+bbcode_enabled = true
+text = "BACK"
+fit_content = true
+scroll_active = false
+theme_override_font_sizes/normal_font_size = 28
+
+[node name="Spacer2" type="Control" parent="CenterContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 20)
+layout_mode = 2
+
+[node name="TypedDisplay" type="Label" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0.898039, 1, 1)
+theme_override_font_sizes/font_size = 32
+text = ""
+horizontal_alignment = 1
+
+[node name="Instructions" type="Label" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.333333, 0.333333, 0.4, 1)
+theme_override_font_sizes/font_size = 14
+text = "Type command | BACKSPACE to delete | ESC to go back"
+horizontal_alignment = 1

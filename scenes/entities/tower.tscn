@@ -1,0 +1,23 @@
+[gd_scene load_steps=2 format=3 uid="uid://tower_scene"]
+
+[ext_resource type="Script" path="res://scripts/entities/tower.gd" id="1_tower"]
+
+[node name="Tower" type="Node2D"]
+script = ExtResource("1_tower")
+
+[node name="Sprite" type="ColorRect" parent="."]
+offset_left = -20.0
+offset_top = -20.0
+offset_right = 20.0
+offset_bottom = 20.0
+color = Color(0, 0.898039, 1, 1)
+
+[node name="RangeIndicator" type="Node2D" parent="."]
+visible = false
+
+[node name="RangeCircle" type="ColorRect" parent="RangeIndicator"]
+offset_left = -200.0
+offset_top = -200.0
+offset_right = 200.0
+offset_bottom = 200.0
+color = Color(1, 1, 1, 0.1)

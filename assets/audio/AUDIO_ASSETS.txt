@@ -1,0 +1,168 @@
+TYPER3000 AUDIO ASSETS REFERENCE
+=================================
+All SFX should be .wav or .ogg format (Godot prefers .ogg for compression)
+Music files should be .ogg format for streaming
+
+DIRECTORY STRUCTURE:
+  assets/audio/sfx/     - Sound effects
+  assets/audio/music/   - Background music tracks
+
+============================================
+REQUIRED SFX FILES (assets/audio/sfx/)
+============================================
+
+CORE TYPING SOUNDS
+------------------
+type_correct.wav      - Short click/blip when correct letter typed
+                        Duration: ~50-100ms, Pitch: High, Clean
+type_error.wav        - Buzz/error when wrong letter typed
+                        Duration: ~100-150ms, Pitch: Low, Harsh
+word_complete.wav     - Satisfying chime when word completed
+                        Duration: ~200-300ms, Rising pitch
+
+COMBAT SOUNDS
+-------------
+enemy_kill.wav        - Enemy destroyed sound
+                        Duration: ~150ms, Explosive/digital
+enemy_spawn.wav       - Enemy appears on screen
+                        Duration: ~100ms, Subtle whoosh
+portal_hit.wav        - Portal takes damage
+                        Duration: ~200ms, Impact thud
+portal_destroy.wav    - Portal is destroyed
+                        Duration: ~500ms, Dramatic crash
+
+GAME STATE SOUNDS
+-----------------
+game_over.wav         - Game over fanfare
+                        Duration: ~1000ms, Descending/sad
+game_start.wav        - Game beginning
+                        Duration: ~500ms, Energetic
+wave_start.wav        - New wave beginning
+                        Duration: ~300ms, Alert/warning tone
+wave_complete.wav     - Wave cleared
+                        Duration: ~500ms, Victory jingle
+
+MENU SOUNDS
+-----------
+menu_select.wav       - Menu option selected/typed
+                        Duration: ~100ms, Clean click
+menu_back.wav         - Going back in menu
+                        Duration: ~100ms, Lower pitch click
+
+POWERUP SOUNDS
+--------------
+powerup_spawn.wav     - PowerUp appears on field
+                        Duration: ~200ms, Magical shimmer
+powerup_collect.wav   - PowerUp collected (generic)
+                        Duration: ~200ms, Pickup sound
+powerup_freeze.wav    - Freeze effect activated
+                        Duration: ~400ms, Ice/crystalline
+powerup_shield.wav    - Shield activated
+                        Duration: ~300ms, Energy barrier
+powerup_bomb.wav      - Bomb detonates
+                        Duration: ~500ms, Explosion
+powerup_heal.wav      - Portal healed
+                        Duration: ~300ms, Healing chime
+powerup_expire.wav    - Timed powerup ending
+                        Duration: ~200ms, Fading/warning
+
+TOWER SOUNDS
+------------
+tower_build.wav       - Tower constructed
+                        Duration: ~300ms, Building/mechanical
+tower_shoot.wav       - Tower firing at enemy
+                        Duration: ~100ms, Laser/projectile
+tower_upgrade.wav     - Tower upgraded
+                        Duration: ~400ms, Level up sound
+tower_sell.wav        - Tower sold/removed
+                        Duration: ~200ms, Cash register/coins
+
+COMBO SOUNDS
+------------
+combo_5.wav           - 5x combo achieved
+                        Duration: ~200ms, Minor fanfare
+combo_10.wav          - 10x combo achieved
+                        Duration: ~300ms, Medium fanfare
+combo_25.wav          - 25x combo achieved
+                        Duration: ~400ms, Major fanfare
+combo_break.wav       - Combo lost
+                        Duration: ~200ms, Descending tone
+
+MULTIPLAYER / WORDWAR SOUNDS
+----------------------------
+match_found.wav       - Opponent matched
+                        Duration: ~500ms, Alert/connection
+opponent_score.wav    - Opponent scored points
+                        Duration: ~150ms, Subtle notification
+word_incoming.wav     - Word sent by opponent arriving
+                        Duration: ~200ms, Warning alert
+victory.wav           - You won the match
+                        Duration: ~1000ms, Victory fanfare
+defeat.wav            - You lost the match
+                        Duration: ~800ms, Defeat sound
+countdown.wav         - Match starting countdown tick
+                        Duration: ~200ms, Clock tick
+
+============================================
+MUSIC TRACKS (assets/audio/music/)
+============================================
+
+menu_theme.ogg        - Main menu background music
+                        Style: Synthwave, Electronic
+                        Loop: Yes
+                        Duration: ~60-120 seconds
+
+gameplay_track_01.ogg - Normal gameplay music
+                        Style: Upbeat electronic/chiptune
+                        Loop: Yes
+                        BPM: 120-140
+
+gameplay_track_02.ogg - Intense gameplay (high waves)
+                        Style: Faster, more urgent
+                        Loop: Yes
+                        BPM: 140-160
+
+wordwar_theme.ogg     - Competitive VS mode music
+                        Style: Competitive, tense
+                        Loop: Yes
+                        BPM: 130-150
+
+boss_theme.ogg        - Boss encounter music
+                        Style: Dramatic, intense
+                        Loop: Yes
+
+============================================
+AUDIO GENERATION SUGGESTIONS
+============================================
+
+Free Tools:
+- sfxr/jsfxr - Retro 8-bit sound effects (great for typing sounds)
+- Audacity - Audio editing, converting formats
+- LMMS - Free DAW for music creation
+- BeepBox - Online chiptune music creator
+
+Asset Sources (check licenses):
+- Freesound.org - CC licensed sounds
+- OpenGameArt.org - Game-ready audio
+- Incompetech - Royalty-free music
+
+Godot Import Settings:
+- SFX: Leave as PCM (no compression) for low latency
+- Music: Use Vorbis compression (Loop enabled)
+
+============================================
+IMPLEMENTATION NOTES
+============================================
+
+SoundManager handles graceful fallback when audio files are missing.
+The game will run silently for missing sounds without crashing.
+
+All audio plays through AudioStreamPlayer nodes with:
+- 8 pooled SFX players for simultaneous sounds
+- 1 dedicated music player with volume control
+- Master/SFX/Music volume sliders (0.0 to 1.0)
+
+Audio buses can be configured in Godot's Audio tab for:
+- Master bus
+- SFX bus (for sound effects)
+- Music bus (for background music)

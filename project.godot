@@ -1,0 +1,76 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
+config_version=5
+
+[application]
+
+config/name="Typer3000"
+config/description="2D Typing Shooter / Survival Game"
+run/main_scene="res://scenes/main.tscn"
+config/features=PackedStringArray("4.2", "Forward Plus")
+config/icon="res://icon.svg"
+boot_splash/bg_color=Color(0.05, 0.05, 0.1, 1)
+boot_splash/image="res://splash.png"
+boot_splash/show_image=true
+boot_splash/fullsize=false
+boot_splash/use_filter=false
+
+[autoload]
+
+GameConfig="*res://scripts/autoload/game_config.gd"
+SignalBus="*res://scripts/autoload/signal_bus.gd"
+StateManager="*res://scripts/autoload/state_manager.gd"
+TypingManager="*res://scripts/autoload/typing_manager.gd"
+SoundManager="*res://scripts/autoload/sound_manager.gd"
+DebugHelper="*res://scripts/autoload/debug_helper.gd"
+EffectsManager="*res://scripts/systems/effects_manager.gd"
+SaveManager="*res://scripts/autoload/save_manager.gd"
+SteamManager="*res://scripts/autoload/steam_manager.gd"
+PowerUpManager="*res://scripts/systems/powerup_manager.gd"
+TowerManager="*res://scripts/systems/tower_manager.gd"
+NetworkManager="*res://scripts/autoload/network_manager.gd"
+WordWarManager="*res://scripts/autoload/word_war_manager.gd"
+BuildManager="*res://scripts/autoload/build_manager.gd"
+
+[display]
+
+window/size/viewport_width=1280
+window/size/viewport_height=720
+window/size/mode=2
+window/size/resizable=true
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+
+[input]
+
+debug_spawn_enemy={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":4194332,"key_label":0,"unicode":0,"echo":false,"script":null)
+]
+}
+debug_damage_portal={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":4194333,"key_label":0,"unicode":0,"echo":false,"script":null)
+]
+}
+ui_cancel={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":4194305,"key_label":0,"unicode":0,"echo":false,"script":null)
+]
+}
+debug_toggle={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":4194334,"key_label":0,"unicode":0,"echo":false,"script":null)
+]
+}
+
+
+[rendering]
+
+renderer/rendering_method="forward_plus"

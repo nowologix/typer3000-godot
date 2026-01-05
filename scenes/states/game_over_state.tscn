@@ -1,0 +1,130 @@
+[gd_scene load_steps=2 format=3 uid="uid://game_over_state"]
+
+[ext_resource type="Script" path="res://scripts/states/game_over_state.gd" id="1_gameover"]
+
+[node name="GameOverState" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1_gameover")
+
+[node name="Overlay" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.1, 0, 0, 0.9)
+
+[node name="CenterContainer" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer"]
+layout_mode = 2
+theme_override_constants/separation = 30
+
+[node name="Title" type="Label" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.164706, 0.541176, 1)
+theme_override_font_sizes/font_size = 64
+text = "GAME OVER"
+horizontal_alignment = 1
+
+[node name="StatsContainer" type="VBoxContainer" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="ScoreRow" type="HBoxContainer" parent="CenterContainer/VBoxContainer/StatsContainer"]
+layout_mode = 2
+alignment = 1
+
+[node name="ScoreLabel" type="Label" parent="CenterContainer/VBoxContainer/StatsContainer/ScoreRow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.533333, 0.533333, 0.6, 1)
+theme_override_font_sizes/font_size = 24
+text = "FINAL SCORE: "
+
+[node name="ScoreValue" type="Label" parent="CenterContainer/VBoxContainer/StatsContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0.898039, 1, 1)
+theme_override_font_sizes/font_size = 48
+text = "0"
+horizontal_alignment = 1
+
+[node name="WaveRow" type="HBoxContainer" parent="CenterContainer/VBoxContainer/StatsContainer"]
+layout_mode = 2
+alignment = 1
+
+[node name="WaveLabel" type="Label" parent="CenterContainer/VBoxContainer/StatsContainer/WaveRow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.533333, 0.533333, 0.6, 1)
+theme_override_font_sizes/font_size = 20
+text = "WAVE REACHED: "
+
+[node name="WaveValue" type="Label" parent="CenterContainer/VBoxContainer/StatsContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.690196, 0, 1)
+theme_override_font_sizes/font_size = 32
+text = "1"
+horizontal_alignment = 1
+
+[node name="AccuracyRow" type="HBoxContainer" parent="CenterContainer/VBoxContainer/StatsContainer"]
+layout_mode = 2
+alignment = 1
+
+[node name="AccuracyLabel" type="Label" parent="CenterContainer/VBoxContainer/StatsContainer/AccuracyRow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.533333, 0.533333, 0.6, 1)
+theme_override_font_sizes/font_size = 20
+text = "ACCURACY: "
+
+[node name="AccuracyValue" type="Label" parent="CenterContainer/VBoxContainer/StatsContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.486275, 1, 0, 1)
+theme_override_font_sizes/font_size = 28
+text = "0%"
+horizontal_alignment = 1
+
+[node name="EnemiesRow" type="HBoxContainer" parent="CenterContainer/VBoxContainer/StatsContainer"]
+layout_mode = 2
+alignment = 1
+
+[node name="EnemiesLabel" type="Label" parent="CenterContainer/VBoxContainer/StatsContainer/EnemiesRow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.533333, 0.533333, 0.6, 1)
+theme_override_font_sizes/font_size = 20
+text = "ENEMIES DESTROYED: "
+
+[node name="EnemiesValue" type="Label" parent="CenterContainer/VBoxContainer/StatsContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.164706, 0.541176, 1)
+theme_override_font_sizes/font_size = 28
+text = "0"
+horizontal_alignment = 1
+
+[node name="Separator" type="HSeparator" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="RetryPrompt" type="Label" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0.898039, 1, 1)
+theme_override_font_sizes/font_size = 24
+text = "Type RETRY to play again"
+horizontal_alignment = 1
+
+[node name="MenuPrompt" type="Label" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.690196, 0, 1)
+theme_override_font_sizes/font_size = 24
+text = "Type MENU to return"
+horizontal_alignment = 1
+
+[node name="TypedDisplay" type="Label" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.486275, 1, 0, 1)
+theme_override_font_sizes/font_size = 32
+text = ""
+horizontal_alignment = 1
