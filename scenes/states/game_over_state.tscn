@@ -130,14 +130,14 @@ layout_mode = 2
 layout_mode = 2
 theme_override_colors/font_color = Color(0, 0.898039, 1, 1)
 theme_override_font_sizes/font_size = 24
-text = "Type RETRY to play again"
+text = "RETRY"
 horizontal_alignment = 1
 
 [node name="MenuPrompt" type="Label" parent="CenterContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.690196, 0, 1)
 theme_override_font_sizes/font_size = 24
-text = "Type MENU to return"
+text = "MENU"
 horizontal_alignment = 1
 
 [node name="TypedDisplay" type="Label" parent="CenterContainer/VBoxContainer"]
