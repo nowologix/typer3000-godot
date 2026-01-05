@@ -129,7 +129,7 @@ func execute_command(command: String) -> void:
 	update_display()
 
 func cycle_resolution() -> void:
-	var current_idx = SaveManager.get_setting("resolution_index", 0)
+	var current_idx: int = int(SaveManager.get_setting("resolution_index", 0))
 	var new_idx = (current_idx + 1) % SaveManager.RESOLUTIONS.size()
 	SaveManager.set_setting("resolution_index", new_idx)
 
