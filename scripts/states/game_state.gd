@@ -169,7 +169,7 @@ func check_player_collisions() -> void:
 				player.take_damage(1)
 			# Also kill the enemy on collision
 			if enemy.has_method("die"):
-				enemy.die(false)  # false = not killed by typing
+				enemy.die()
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.is_echo():
