@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3 uid="uid://lobby_state"]
+[gd_scene load_steps=3 format=3 uid="uid://lobby_state"]
 
 [ext_resource type="Script" path="res://scripts/states/lobby_state.gd" id="1_lobby"]
+[ext_resource type="FontFile" path="res://assets/fonts/EurostileBold.tres" id="2_bold_font"]
 
 [node name="LobbyState" type="Control"]
 layout_mode = 3
@@ -29,21 +30,31 @@ theme_override_constants/separation = 15
 [node name="Title" type="Label" parent="CenterContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.164706, 0.541176, 1)
+theme_override_fonts/font = ExtResource("2_bold_font")
 theme_override_font_sizes/font_size = 48
 text = "MULTIPLAYER"
+horizontal_alignment = 1
+
+[node name="ModeTitle" type="Label" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0.898039, 1, 1)
+theme_override_fonts/font = ExtResource("2_bold_font")
+theme_override_font_sizes/font_size = 24
+text = ""
 horizontal_alignment = 1
 
 [node name="StatusLabel" type="Label" parent="CenterContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.533333, 0.533333, 0.6, 1)
 theme_override_font_sizes/font_size = 18
-text = "Disconnected"
+text = ""
 horizontal_alignment = 1
 
 [node name="CodeLabel" type="Label" parent="CenterContainer/VBoxContainer"]
 visible = false
 layout_mode = 2
 theme_override_colors/font_color = Color(0, 0.898039, 1, 1)
+theme_override_fonts/font = ExtResource("2_bold_font")
 theme_override_font_sizes/font_size = 28
 text = "Lobby Code: XXXX"
 horizontal_alignment = 1
@@ -63,6 +74,7 @@ layout_mode = 2
 [node name="HostPrompt" type="Label" parent="CenterContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_fonts/font = ExtResource("2_bold_font")
 theme_override_font_sizes/font_size = 32
 text = "HOST"
 horizontal_alignment = 1
@@ -70,6 +82,7 @@ horizontal_alignment = 1
 [node name="JoinPrompt" type="Label" parent="CenterContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_fonts/font = ExtResource("2_bold_font")
 theme_override_font_sizes/font_size = 32
 text = "JOIN"
 horizontal_alignment = 1
@@ -78,6 +91,7 @@ horizontal_alignment = 1
 visible = false
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_fonts/font = ExtResource("2_bold_font")
 theme_override_font_sizes/font_size = 32
 text = "READY"
 horizontal_alignment = 1
@@ -86,13 +100,37 @@ horizontal_alignment = 1
 visible = false
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_fonts/font = ExtResource("2_bold_font")
 theme_override_font_sizes/font_size = 32
 text = "START"
 horizontal_alignment = 1
 
+[node name="InvitePrompt" type="Label" parent="CenterContainer/VBoxContainer"]
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_fonts/font = ExtResource("2_bold_font")
+theme_override_font_sizes/font_size = 32
+text = "INVITE"
+horizontal_alignment = 1
+
+[node name="CopyPrompt" type="Label" parent="CenterContainer/VBoxContainer"]
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_fonts/font = ExtResource("2_bold_font")
+theme_override_font_sizes/font_size = 32
+text = "STRG+C"
+horizontal_alignment = 1
+
+[node name="SpacerMiddle" type="Control" parent="CenterContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 30)
+layout_mode = 2
+
 [node name="SettingsPrompt" type="Label" parent="CenterContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_fonts/font = ExtResource("2_bold_font")
 theme_override_font_sizes/font_size = 32
 text = "SETTINGS"
 horizontal_alignment = 1
@@ -100,6 +138,7 @@ horizontal_alignment = 1
 [node name="BackPrompt" type="Label" parent="CenterContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_fonts/font = ExtResource("2_bold_font")
 theme_override_font_sizes/font_size = 32
 text = "BACK"
 horizontal_alignment = 1
@@ -111,8 +150,17 @@ layout_mode = 2
 [node name="TypedDisplay" type="Label" parent="CenterContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0, 0.898039, 1, 1)
+theme_override_fonts/font = ExtResource("2_bold_font")
 theme_override_font_sizes/font_size = 32
 text = ""
+horizontal_alignment = 1
+
+[node name="PasteHint" type="Label" parent="CenterContainer/VBoxContainer"]
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(0.533333, 0.533333, 0.6, 1)
+theme_override_font_sizes/font_size = 14
+text = "STRG+V zum Einfuegen"
 horizontal_alignment = 1
 
 [node name="ServerInfo" type="Label" parent="CenterContainer/VBoxContainer"]

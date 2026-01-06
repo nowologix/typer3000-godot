@@ -19,7 +19,7 @@ const PORTAL_FRAME_SIZE := Vector2(256, 256)
 const PORTAL_COLUMNS := 22
 const PORTAL_TOTAL_FRAMES := 330
 const PORTAL_FPS := 30.0
-const PORTAL_SCALE := 0.5  # Scale down 256px to ~128px display
+const PORTAL_SCALE := 1.2  # Scale 256px to ~300px display (50% larger)
 
 # Color thresholds
 const HP_HEALTHY_THRESHOLD: float = 0.6
@@ -37,12 +37,10 @@ func _ready() -> void:
 	reset()
 
 func _setup_animated_sprite() -> void:
-	if not ResourceLoader.exists(PORTAL_SHEET_PATH):
-		DebugHelper.log_debug("Portal spritesheet not found, using fallback")
-		return
-
-	var texture = load(PORTAL_SHEET_PATH)
+	# Load PNG directly without Godot import system
+	var texture = _load_png_directly(PORTAL_SHEET_PATH)
 	if texture == null:
+		DebugHelper.log_warning("Portal spritesheet failed to load: %s" % PORTAL_SHEET_PATH)
 		return
 
 	# Create animated sprite
@@ -80,6 +78,16 @@ func _setup_animated_sprite() -> void:
 
 	use_animated_sprite = true
 	DebugHelper.log_info("Portal animated sprite loaded (%d frames)" % PORTAL_TOTAL_FRAMES)
+
+func _load_png_directly(res_path: String) -> ImageTexture:
+	# Load PNG file directly without Godot's import system
+	var abs_path = ProjectSettings.globalize_path(res_path)
+	var image = Image.new()
+	var err = image.load(abs_path)
+	if err != OK:
+		DebugHelper.log_error("Failed to load image: %s (error %d)" % [abs_path, err])
+		return null
+	return ImageTexture.create_from_image(image)
 
 func reset() -> void:
 	max_hp = GameConfig.PORTAL_MAX_HEALTH
@@ -143,6 +151,13 @@ func _on_portal_heal(amount: int) -> void:
 func heal(amount: int) -> void:
 	current_hp = min(max_hp, current_hp + amount)
 	update_display()
+
+func set_hp(hp: int) -> void:
+	# Used for network sync - sets HP directly without triggering damage effects
+	current_hp = clampi(hp, 0, max_hp)
+	update_display()
+	if current_hp <= 0:
+		on_destroyed()
 
 func update_display() -> void:
 	if hp_label:

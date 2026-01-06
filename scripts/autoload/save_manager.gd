@@ -54,9 +54,12 @@ var save_data: Dictionary = {
 
 signal settings_changed
 
+var _applying_settings: bool = false
+
 func _ready() -> void:
 	load_data()
-	apply_settings()
+	# Defer settings application to ensure all autoloads are ready
+	call_deferred("apply_settings")
 	DebugHelper.log_info("SaveManager initialized")
 
 func save_data_to_file() -> void:
@@ -103,38 +106,53 @@ func load_data() -> void:
 		DebugHelper.log_info("SaveManager: Data loaded successfully")
 
 func apply_settings() -> void:
+	# Prevent re-entry (avoids stack underflow bug)
+	if _applying_settings:
+		return
+	_applying_settings = true
+
 	var settings = get_settings()
-	
-	# Apply resolution
-	var res_idx = settings.get("resolution_index", 0)
-	if res_idx >= 0 and res_idx < RESOLUTIONS.size():
-		var res = RESOLUTIONS[res_idx]
-		DisplayServer.window_set_size(res)
-	
-	# Apply fullscreen
-	if settings.get("fullscreen", false):
+
+	# Apply fullscreen first (before resolution)
+	var is_fullscreen = settings.get("fullscreen", false)
+	if is_fullscreen:
 		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
 	else:
 		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
-	
+
+		# Apply resolution only in windowed mode
+		var res_idx = settings.get("resolution_index", 0)
+		if res_idx >= 0 and res_idx < RESOLUTIONS.size():
+			var res = RESOLUTIONS[res_idx]
+			DisplayServer.window_set_size(res)
+			# Center window on screen
+			var screen_size = DisplayServer.screen_get_size()
+			var window_pos = (screen_size - res) / 2
+			DisplayServer.window_set_position(window_pos)
+
 	# Apply VSync
 	if settings.get("vsync", true):
 		DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED)
 	else:
 		DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
-	
-	# Apply audio volumes
-	SoundManager.set_master_volume(settings.get("master_volume", 1.0))
-	SoundManager.set_music_volume(settings.get("music_volume", 0.7))
-	SoundManager.set_sfx_volume(settings.get("sfx_volume", 1.0))
+
+	# Apply audio volumes (check if SoundManager is ready)
+	if SoundManager:
+		SoundManager.set_master_volume(settings.get("master_volume", 1.0))
+		SoundManager.set_music_volume(settings.get("music_volume", 0.7))
+		SoundManager.set_sfx_volume(settings.get("sfx_volume", 1.0))
 
 	# Apply language
 	var language = settings.get("language", "EN")
 	if WordSetLoader:
 		WordSetLoader.set_language_string(language)
+	if Tr:
+		Tr.set_language(language)
 
 	settings_changed.emit()
-	DebugHelper.log_info("SaveManager: Settings applied")
+	DebugHelper.log_info("SaveManager: Settings applied (resolution_index: %d, fullscreen: %s)" % [settings.get("resolution_index", 0), is_fullscreen])
+
+	_applying_settings = false
 
 # Score functions
 func get_high_score() -> int:

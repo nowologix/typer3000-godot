@@ -6,17 +6,21 @@ extends Control
 @onready var wave_label: Label = $TopBar/WaveLabel
 @onready var combo_label: Label = $TopBar/ComboLabel
 @onready var accuracy_label: Label = $TopBar/AccuracyLabel
-@onready var active_word_label: Label = $BottomBar/ActiveWordLabel
+@onready var active_word_label: Label = $ActiveWordContainer/ActiveWordLabel
 @onready var enemies_label: Label = $BottomBar/EnemiesLabel
 @onready var errors_label: Label = $BottomBar/ErrorsLabel
+@onready var powerup_container: VBoxContainer = $PowerUpContainer
 
 var combo_pulse_tween: Tween = null
+var powerup_labels: Dictionary = {}
 
 func _ready() -> void:
-	# Connect to signals for real-time updates
 	SignalBus.combo_updated.connect(_on_combo_updated)
 	SignalBus.combo_reset.connect(_on_combo_reset)
 	SignalBus.char_typed.connect(_on_char_typed)
+
+func _process(_delta: float) -> void:
+	update_powerup_display()
 
 func update_stats(stats: Dictionary) -> void:
 	if score_label:
@@ -31,7 +35,6 @@ func update_stats(stats: Dictionary) -> void:
 	if accuracy_label:
 		var acc = stats.get("accuracy", 100.0)
 		accuracy_label.text = "ACC: %.1f%%" % acc
-		# Color based on accuracy
 		if acc >= 95:
 			accuracy_label.add_theme_color_override("font_color", GameConfig.COLORS.acid_green)
 		elif acc >= 80:
@@ -45,7 +48,6 @@ func update_stats(stats: Dictionary) -> void:
 	if errors_label:
 		errors_label.text = "ERRORS: %d" % stats.get("errors", 0)
 
-	# Active word display
 	if active_word_label:
 		var active_word = stats.get("active_word", "")
 		var typed_index = stats.get("typed_index", 0)
@@ -67,27 +69,50 @@ func update_combo(combo: int) -> void:
 	if combo_label:
 		combo_label.text = "COMBO: %d" % combo
 
+func update_powerup_display() -> void:
+	if powerup_container == null:
+		return
+
+	var active = PowerUpManager.get_active_powerups()
+
+	for type in powerup_labels.keys():
+		if not active.has(type):
+			powerup_labels[type].queue_free()
+			powerup_labels.erase(type)
+
+	for type in active:
+		var remaining = active[type]
+		var data = PowerUpManager.POWERUPS.get(type, {})
+		var pname = data.get("name", "UNKNOWN")
+		var color = data.get("color", Color.WHITE)
+
+		if powerup_labels.has(type):
+			powerup_labels[type].text = "%s: %.1fs" % [pname, remaining]
+		else:
+			var label = Label.new()
+			label.text = "%s: %.1fs" % [pname, remaining]
+			label.add_theme_font_size_override("font_size", 18)
+			label.add_theme_color_override("font_color", color)
+			label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+			powerup_container.add_child(label)
+			powerup_labels[type] = label
+
 func _on_combo_updated(combo: int) -> void:
 	update_combo(combo)
-
-	# Pulse effect for high combos
 	if combo > 0 and combo % 10 == 0:
 		pulse_combo_label()
 
 func _on_combo_reset() -> void:
 	if combo_label:
 		combo_label.text = "COMBO: 0"
-		# Flash red on reset
 		combo_label.add_theme_color_override("font_color", GameConfig.COLORS.magenta)
 		var tween = create_tween()
 		tween.tween_property(combo_label, "theme_override_colors/font_color", GameConfig.COLORS.acid_green, 0.3)
 
-func _on_char_typed(char: String, correct: bool) -> void:
+func _on_char_typed(c: String, correct: bool) -> void:
 	if correct:
-		# Brief flash on correct type
 		pass
 	else:
-		# Flash active word red on error
 		if active_word_label:
 			active_word_label.add_theme_color_override("font_color", GameConfig.COLORS.magenta)
 			var tween = create_tween()

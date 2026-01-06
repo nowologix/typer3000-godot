@@ -115,31 +115,35 @@ func process_char(typed_char: String) -> void:
 		SoundManager.play_menu_select()
 		return
 
-	# Check if exactly one target matches - lock onto it
-	if matching_enemies.size() == 1 and matching_powerups.size() == 0 and not build_matches:
-		lock_onto_enemy(matching_enemies[0], new_typed_buffer.length())
-		typed_buffer = ""
-		return
-
-	if matching_powerups.size() == 1 and matching_enemies.size() == 0 and not build_matches:
-		lock_onto_powerup(matching_powerups[0], new_typed_buffer.length())
-		typed_buffer = ""
-		return
-
-	# Check for exact word match
+	# Combine all targets into one pool - no hierarchy, all equal
+	var all_targets: Array = []
 	for enemy in matching_enemies:
-		if enemy.word.to_upper() == new_typed_buffer:
-			lock_onto_enemy(enemy, new_typed_buffer.length())
-			complete_word()
+		all_targets.append({"target": enemy, "type": "enemy", "word": enemy.word.to_upper()})
+	for powerup in matching_powerups:
+		all_targets.append({"target": powerup, "type": "powerup", "word": powerup.word.to_upper()})
+
+	# Check for exact word match first (complete immediately)
+	for t in all_targets:
+		if t.word == new_typed_buffer:
+			if t.type == "powerup":
+				lock_onto_powerup(t.target, new_typed_buffer.length())
+				complete_powerup()
+			else:
+				lock_onto_enemy(t.target, new_typed_buffer.length(), new_typed_buffer)
+				complete_word()
 			typed_buffer = ""
 			return
 
-	for powerup in matching_powerups:
-		if powerup.word.to_upper() == new_typed_buffer:
-			lock_onto_powerup(powerup, new_typed_buffer.length())
-			complete_powerup()
-			typed_buffer = ""
-			return
+	# If exactly one target matches total - lock onto it
+	if all_targets.size() == 1:
+		var t = all_targets[0]
+		if t.type == "powerup":
+			lock_onto_powerup(t.target, new_typed_buffer.length())
+		else:
+			lock_onto_enemy(t.target, new_typed_buffer.length(), new_typed_buffer)
+		typed_buffer = ""
+		build_buffer = ""
+		return
 
 	# Multiple matches - update visual feedback on all
 	update_potential_targets(matching_enemies, matching_powerups, new_typed_buffer.length())
@@ -167,6 +171,8 @@ func process_active_enemy(typed_char: String, build_matches: bool, new_build_buf
 			EffectsManager.spawn_hit_effect(active_enemy.global_position, enemy_container)
 		if combo == 5 or combo == 10 or combo == 25:
 			SoundManager.play_combo_milestone(combo)
+		if combo == 100:
+			SoundManager.play_voice_king_of_combo()
 		SignalBus.char_typed.emit(typed_char, true)
 		SignalBus.combo_updated.emit(combo)
 		if active_enemy.has_method("update_typed_progress"):
@@ -235,7 +241,7 @@ func process_active_powerup(typed_char: String, build_matches: bool, new_build_b
 			if active_powerup.has_method("update_typed_progress"):
 				active_powerup.update_typed_progress(0)
 			active_powerup = null
-			lock_onto_enemy(matching_enemies[0], typed_buffer.length() + 1)
+			lock_onto_enemy(matching_enemies[0], typed_buffer.length() + 1, typed_buffer + typed_char)
 			typed_buffer = ""
 			combo += 1
 			correct_chars_typed += 1
@@ -251,10 +257,20 @@ func find_enemies_matching(prefix: String) -> Array:
 		return matches
 
 	for enemy in enemy_container.get_children():
+		# IMPORTANT: Only match actual enemies, not powerups!
+		if not enemy.is_in_group("enemies"):
+			continue
+
 		if enemy.has_method("get_word") and enemy.has_method("is_alive") and enemy.is_alive():
 			var word = enemy.get_word().to_upper()
+			# Normal match: word starts with prefix
 			if word.begins_with(prefix):
 				matches.append(enemy)
+			# Tower-damaged match: REMAINING portion starts with prefix
+			elif "typed_progress" in enemy and enemy.typed_progress > 0:
+				var remaining = word.substr(enemy.typed_progress)
+				if remaining.begins_with(prefix):
+					matches.append(enemy)
 
 	# Sort by distance to portal (closest first)
 	matches.sort_custom(func(a, b):
@@ -277,14 +293,37 @@ func find_powerups_matching(prefix: String) -> Array:
 
 	return matches
 
-func lock_onto_enemy(enemy: Node, progress: int) -> void:
+func lock_onto_enemy(enemy: Node, progress: int, typed_text: String = "") -> void:
 	active_enemy = enemy
 	active_powerup = null
-	typed_index = progress
+	
+	var tower_progress: int = enemy.typed_progress if "typed_progress" in enemy else 0
+	var word = enemy.word.to_upper()
+	
+	# Check if player is matching the REMAINING portion (tower-damaged word)
+	# or the full word from the beginning
+	if tower_progress > 0:
+		var remaining = word.substr(tower_progress)
+		if remaining.begins_with(typed_text.to_upper()):
+			# Player is continuing from where tower left off
+			typed_index = tower_progress + progress
+			DebugHelper.log_debug("Continuing tower-damaged word: %s (tower: %d + player: %d = %d)" % [word, tower_progress, progress, typed_index])
+		elif word.begins_with(typed_text.to_upper()):
+			# Player typed from the beginning (overriding tower progress)
+			typed_index = progress
+		else:
+			typed_index = progress
+	else:
+		typed_index = progress
+	
 	if active_enemy.has_method("update_typed_progress"):
 		active_enemy.update_typed_progress(typed_index)
 	SignalBus.word_started.emit(active_enemy)
-	DebugHelper.log_debug("Locked onto enemy: %s (progress: %d)" % [active_enemy.word, progress])
+	DebugHelper.log_debug("Locked onto enemy: %s (typed_index: %d, tower: %d)" % [active_enemy.word, typed_index, tower_progress])
+	
+	# Check if word is already complete (e.g. tower did most of the work)
+	if typed_index >= word.length():
+		complete_word()
 
 func lock_onto_powerup(powerup: Node, progress: int) -> void:
 	active_powerup = powerup
@@ -295,7 +334,18 @@ func lock_onto_powerup(powerup: Node, progress: int) -> void:
 	DebugHelper.log_debug("Locked onto powerup: %s (progress: %d)" % [active_powerup.word, progress])
 
 func update_potential_targets(enemies: Array, powerups: Array, progress: int) -> void:
-	# Update visual progress on all potential targets
+	# First: Reset progress on targets that NO LONGER match
+	for enemy in potential_enemies:
+		if is_instance_valid(enemy) and enemy not in enemies:
+			if enemy.has_method("update_typed_progress"):
+				enemy.update_typed_progress(0)
+
+	for powerup in potential_powerups:
+		if is_instance_valid(powerup) and powerup not in powerups:
+			if powerup.has_method("update_typed_progress"):
+				powerup.update_typed_progress(0)
+
+	# Then: Update visual progress on all currently matching targets
 	for enemy in enemies:
 		if enemy.has_method("update_typed_progress"):
 			enemy.update_typed_progress(progress)
@@ -333,10 +383,19 @@ func complete_word() -> void:
 	clear_potential_targets()
 
 func complete_powerup() -> void:
-	if active_powerup != null and is_instance_valid(active_powerup):
-		DebugHelper.log_debug("PowerUp completed: %s" % active_powerup.word)
-		if active_powerup.has_method("collect"):
-			active_powerup.collect()
+	DebugHelper.log_info("=== complete_powerup called ===")
+	if active_powerup == null:
+		DebugHelper.log_warning("complete_powerup: active_powerup is NULL!")
+		return
+	if not is_instance_valid(active_powerup):
+		DebugHelper.log_warning("complete_powerup: active_powerup is INVALID!")
+		return
+	DebugHelper.log_info("PowerUp completing: %s" % active_powerup.word)
+	if active_powerup.has_method("collect"):
+		DebugHelper.log_info("Calling collect() on powerup")
+		active_powerup.collect()
+	else:
+		DebugHelper.log_warning("PowerUp has no collect() method!")
 
 	active_powerup = null
 	typed_index = 0

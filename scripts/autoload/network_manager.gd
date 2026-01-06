@@ -26,6 +26,9 @@ var is_host: bool = false
 # Other players in lobby
 var players: Dictionary = {}  # id -> {name, ready, score}
 
+# Game mode (set by host, synced to clients)
+var game_mode: String = ""
+
 # Message buffer
 var message_buffer: String = ""
 
@@ -206,8 +209,10 @@ func process_message(message: String) -> void:
 			# Host started the game
 			state = ConnectionState.IN_GAME
 			var game_seed = data.get("seed", randi())
-			DebugHelper.log_info("NetworkManager: Game starting with seed %d" % game_seed)
-			SignalBus.network_game_start.emit(game_seed)
+			var mode = data.get("mode", "")
+			game_mode = mode
+			DebugHelper.log_info("NetworkManager: Game starting with seed %d, mode %s" % [game_seed, mode])
+			SignalBus.network_game_start.emit(game_seed, mode)
 		"wordwar_state":
 			# Full game state sync from host
 			if data.has("state"):
@@ -219,19 +224,82 @@ func process_message(message: String) -> void:
 			if sender_id != player_id and sender_id > 0 and typed_char != "":
 				# Use sender_id directly as the remote player
 				WordWarManager.process_char(typed_char, sender_id)
+		"coop_enemy_killed":
+			# Partner killed an enemy in COOP (new format with enemy_id)
+			SignalBus.coop_enemy_killed_v2.emit(data)
+		"coop_score":
+			# Partner score update in COOP
+			var partner_score = data.get("score", 0)
+			SignalBus.coop_partner_score.emit(partner_score)
+		"coop_reserve":
+			# Partner reserved a word (new format with enemy_id)
+			SignalBus.coop_reserve.emit(data)
+		"coop_release":
+			# Partner released a word (new format with enemy_id)
+			SignalBus.coop_release.emit(data)
+		"coop_player_pos":
+			# Player position sync (P2 sends, P1 receives)
+			var pos_x = data.get("x", 0)
+			var pos_y = data.get("y", 0)
+			SignalBus.emit_signal("coop_player_moved", Vector2(pos_x, pos_y))
+		"coop_switch":
+			# Partner triggered SWITCH
+			SignalBus.coop_switch.emit()
+		"coop_spawn_enemy":
+			# Host spawned an enemy - client should create it
+			SignalBus.coop_spawn_enemy.emit(data)
+		"coop_spawn_powerup":
+			# Host spawned a powerup - client should create it
+			SignalBus.coop_spawn_powerup.emit(data)
+		"coop_state":
+			# Full state sync from host
+			SignalBus.coop_state.emit(data)
+		"coop_typing":
+			# Partner is typing an enemy
+			SignalBus.coop_typing.emit(data)
+		"coop_nuke_typed":
+			# Partner typed NUKE
+			SignalBus.coop_nuke_typed.emit(data)
+		"coop_powerup_collected":
+			# Partner collected a powerup
+			SignalBus.coop_powerup_collected.emit(data)
+		"coop_game_over":
+			# Game over sync
+			SignalBus.coop_game_over.emit(data)
+		"coop_tower_placed":
+			# Partner placed a tower (P2 -> Host)
+			SignalBus.coop_tower_placed.emit(data)
 		_:
 			DebugHelper.log_debug("NetworkManager: Unknown message type: %s" % msg_type)
 
 func create_lobby() -> void:
 	if state != ConnectionState.CONNECTED:
 		connect_to_relay()
-		await SignalBus.network_connected
+		# Wait for either connected or disconnected
+		var result = await wait_for_connection()
+		if not result:
+			DebugHelper.log_error("NetworkManager: Failed to connect for lobby creation")
+			SignalBus.lobby_join_failed.emit("Connection failed")
+			return
 	send_message("create_lobby", {"playerName": player_name})
+
+func wait_for_connection() -> bool:
+	# Wait up to 10 seconds for connection
+	var timeout := 10.0
+	var elapsed := 0.0
+	while state == ConnectionState.CONNECTING and elapsed < timeout:
+		await get_tree().create_timer(0.1).timeout
+		elapsed += 0.1
+	return state == ConnectionState.CONNECTED
 
 func join_lobby(code: String) -> void:
 	if state != ConnectionState.CONNECTED:
 		connect_to_relay()
-		await SignalBus.network_connected
+		var result = await wait_for_connection()
+		if not result:
+			DebugHelper.log_error("NetworkManager: Failed to connect for lobby join")
+			SignalBus.lobby_join_failed.emit("Connection failed")
+			return
 	send_message("join_lobby", {"code": code.to_upper(), "playerName": player_name})
 
 func leave_lobby() -> void:
@@ -243,16 +311,17 @@ func leave_lobby() -> void:
 func set_ready(ready: bool) -> void:
 	send_message("set_ready", {"ready": ready})
 
-func start_game() -> void:
+func start_game(mode: String = "") -> void:
 	if not is_host:
 		return
 	# Generate seed and send to all players
 	var game_seed = randi()
-	send_message("start_game", {"seed": game_seed})
+	game_mode = mode
+	send_message("start_game", {"seed": game_seed, "mode": mode})
 	# Host also transitions to game
 	state = ConnectionState.IN_GAME
-	DebugHelper.log_info("NetworkManager: Host starting game with seed %d" % game_seed)
-	SignalBus.network_game_start.emit(game_seed)
+	DebugHelper.log_info("NetworkManager: Host starting game with seed %d, mode %s" % [game_seed, mode])
+	SignalBus.network_game_start.emit(game_seed, mode)
 
 func send_score_update(score: int) -> void:
 	send_message("score_update", {"score": score})
@@ -262,6 +331,12 @@ func send_word_completed(word: String) -> void:
 
 func send_game_over(won: bool, final_score: int) -> void:
 	send_message("game_over", {"won": won, "score": final_score})
+
+func send_coop_score(score: int) -> void:
+	send_message("coop_score", {"score": score})
+
+func send_coop_enemy_killed(word: String, points: int) -> void:
+	send_message("coop_enemy_killed", {"word": word, "points": points})
 
 func send_ping() -> void:
 	send_message("ping", {"time": Time.get_ticks_msec()})

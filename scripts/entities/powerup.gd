@@ -13,7 +13,7 @@ var alive: bool = true
 var time_alive: float = 0.0
 var base_scale: Vector2 = Vector2.ONE
 
-@onready var word_label: Label = $WordLabel
+@onready var word_label: RichTextLabel = $WordLabel
 @onready var sprite: ColorRect = $Sprite
 
 func _ready() -> void:
@@ -72,24 +72,32 @@ func update_typed_progress(progress: int) -> void:
 	update_display()
 
 func update_display() -> void:
-	if word_label:
-		word_label.text = word
+	if word_label == null:
+		return
 
-		# Highlight typed portion
-		if typed_progress > 0 and typed_progress < word.length():
-			# Show progress with color
-			if sprite:
-				sprite.modulate = Color(1.5, 1.5, 1.5)  # Brighten
-		else:
-			if sprite:
-				sprite.modulate = Color.WHITE
+	# Show typed progress with color coding (like enemies)
+	if typed_progress > 0 and typed_progress < word.length():
+		var typed_part = word.substr(0, typed_progress)
+		var remaining_part = word.substr(typed_progress)
+		word_label.text = "[center][color=#00E5FF]%s[/color]%s[/center]" % [typed_part, remaining_part]
+		if sprite:
+			sprite.modulate = Color(1.5, 1.5, 1.5)  # Brighten
+	elif typed_progress >= word.length():
+		word_label.text = "[center][color=#7CFF00]%s[/color][/center]" % word
+		if sprite:
+			sprite.modulate = Color(1.5, 1.5, 1.5)
+	else:
+		word_label.text = "[center]%s[/center]" % word
+		if sprite:
+			sprite.modulate = Color.WHITE
 
 func collect() -> void:
 	if not alive:
+		DebugHelper.log_warning("PowerUp collect called but not alive!")
 		return
 
 	alive = false
-	DebugHelper.log_debug("PowerUp collected: %s" % word)
+	DebugHelper.log_info("PowerUp COLLECTED: word=%s, type=%d" % [word, powerup_type])
 
 	# Visual feedback
 	var tween = create_tween()
@@ -98,7 +106,7 @@ func collect() -> void:
 	tween.tween_property(self, "modulate:a", 0.0, 0.2)
 	tween.chain().tween_callback(queue_free)
 
-	# Notify powerup manager
+	# Notify powerup manager - this activates the effect!
 	PowerUpManager.collect_powerup(powerup_type)
 
 func despawn() -> void:

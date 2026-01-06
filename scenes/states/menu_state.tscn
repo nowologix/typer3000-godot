@@ -1,7 +1,8 @@
-[gd_scene load_steps=3 format=3 uid="uid://menu_state"]
+[gd_scene load_steps=4 format=3 uid="uid://menu_state"]
 
 [ext_resource type="Script" path="res://scripts/states/menu_state.gd" id="1_menu"]
 [ext_resource type="VideoStream" path="res://assets/video/menu_background.ogv" id="2_video"]
+[ext_resource type="FontFile" path="res://assets/fonts/EurostileBold.tres" id="3_font"]
 
 [node name="MenuState" type="Control"]
 layout_mode = 3
@@ -47,6 +48,7 @@ theme_override_constants/separation = 20
 [node name="Title" type="Label" parent="CenterContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0, 0.898039, 1, 1)
+theme_override_fonts/font = ExtResource("3_font")
 theme_override_font_sizes/font_size = 72
 text = "TYPER3000"
 horizontal_alignment = 1
@@ -55,37 +57,45 @@ horizontal_alignment = 1
 custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
 
-[node name="StartPrompt" type="RichTextLabel" parent="CenterContainer/VBoxContainer"]
+[node name="StartPrompt" type="Label" parent="CenterContainer/VBoxContainer"]
 layout_mode = 2
-bbcode_enabled = true
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_fonts/font = ExtResource("3_font")
+theme_override_font_sizes/font_size = 32
 text = "START"
-fit_content = true
-scroll_active = false
-theme_override_font_sizes/normal_font_size = 32
+horizontal_alignment = 1
 
-[node name="VersusPrompt" type="RichTextLabel" parent="CenterContainer/VBoxContainer"]
+[node name="MultiplayerPrompt" type="Label" parent="CenterContainer/VBoxContainer"]
 layout_mode = 2
-bbcode_enabled = true
-text = "VERSUS"
-fit_content = true
-scroll_active = false
-theme_override_font_sizes/normal_font_size = 32
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_fonts/font = ExtResource("3_font")
+theme_override_font_sizes/font_size = 32
+text = "MULTIPLAYER"
+horizontal_alignment = 1
 
-[node name="SettingsPrompt" type="RichTextLabel" parent="CenterContainer/VBoxContainer"]
+[node name="StatsPrompt" type="Label" parent="CenterContainer/VBoxContainer"]
 layout_mode = 2
-bbcode_enabled = true
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_fonts/font = ExtResource("3_font")
+theme_override_font_sizes/font_size = 32
+text = "STATS"
+horizontal_alignment = 1
+
+[node name="SettingsPrompt" type="Label" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_fonts/font = ExtResource("3_font")
+theme_override_font_sizes/font_size = 32
 text = "SETTINGS"
-fit_content = true
-scroll_active = false
-theme_override_font_sizes/normal_font_size = 32
+horizontal_alignment = 1
 
-[node name="QuitPrompt" type="RichTextLabel" parent="CenterContainer/VBoxContainer"]
+[node name="QuitPrompt" type="Label" parent="CenterContainer/VBoxContainer"]
 layout_mode = 2
-bbcode_enabled = true
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_fonts/font = ExtResource("3_font")
+theme_override_font_sizes/font_size = 32
 text = "QUIT"
-fit_content = true
-scroll_active = false
-theme_override_font_sizes/normal_font_size = 32
+horizontal_alignment = 1
 
 [node name="Spacer2" type="Control" parent="CenterContainer/VBoxContainer"]
 custom_minimum_size = Vector2(0, 30)
@@ -94,6 +104,7 @@ layout_mode = 2
 [node name="TypedDisplay" type="Label" parent="CenterContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0, 0.898039, 1, 1)
+theme_override_fonts/font = ExtResource("3_font")
 theme_override_font_sizes/font_size = 36
 text = ""
 horizontal_alignment = 1
@@ -101,6 +112,7 @@ horizontal_alignment = 1
 [node name="Instructions" type="Label" parent="CenterContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.333333, 0.333333, 0.4, 1)
+theme_override_fonts/font = ExtResource("3_font")
 theme_override_font_sizes/font_size = 14
 text = "F3 = Toggle Debug"
 horizontal_alignment = 1

@@ -10,8 +10,12 @@ const STATE_SCENES := {
 	"pause": "res://scenes/states/pause_state.tscn",
 	"game_over": "res://scenes/states/game_over_state.tscn",
 	"settings": "res://scenes/states/settings_state.tscn",
+	"statistics": "res://scenes/states/statistics_state.tscn",
+	"mode_select": "res://scenes/states/mode_select_state.tscn",
 	"lobby": "res://scenes/states/lobby_state.tscn",
 	"wordwar": "res://scenes/states/wordwar_state.tscn",
+	"vs_battle": "res://scenes/states/vs_battle_state.tscn",
+	"coop_game": "res://scenes/states/coop_game_state.tscn",
 }
 
 var current_state: Node = null

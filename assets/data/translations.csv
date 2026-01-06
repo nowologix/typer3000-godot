@@ -1,0 +1,58 @@
+KEY,EN,DE
+GAME_TITLE,TYPER3000,TYPER3000
+START,START,START
+MULTIPLAYER,MULTIPLAYER,MEHRSPIELER
+STATS,STATS,STATISTIK
+SETTINGS,SETTINGS,EINSTELLUNGEN
+QUIT,QUIT,BEENDEN
+BACK,BACK,ZURUECK
+MENU,MENU,MENUE
+RETRY,RETRY,NOCHMAL
+PAUSE_TITLE,PAUSED,PAUSE
+RESUME,RESUME,FORTSETZEN
+GAME_OVER_TITLE,GAME OVER,GAME OVER
+SELECT_MODE,SELECT MODE,MODUS WAEHLEN
+SELECT_MODE_HINT,Use arrow keys or type the mode name,Pfeiltasten oder Modusnamen tippen
+CONFIRM_HINT,Press ENTER to confirm or ESC to go back,ENTER zum Bestaetigen oder ESC zurueck
+VS,VS,VS
+COOP,COOP,COOP
+WORDWAR,WORD-WAR,WORD-WAR
+VS_DESC,"Race against your opponent! Both play solo - first to lose, loses.","Wettrennen gegen den Gegner! Beide spielen solo - wer zuerst verliert, verliert."
+COOP_DESC,"Team up on the same battlefield! One builds, one types - or mix it up!","Zusammen auf dem Spielfeld! Einer baut, einer tippt - oder gemischt!"
+WORDWAR_DESC,Type words to attack! Send words flying at your opponent.,Tippe Woerter zum Angreifen! Schicke Woerter zum Gegner!
+HOST,HOST,ERSTELLEN
+JOIN,JOIN,BEITRETEN
+READY,READY,BEREIT
+INVITE,INVITE,EINLADEN
+COPY_CODE,STRG+C,STRG+C
+PASTE_CODE,STRG+V to paste,STRG+V zum Einfuegen
+IN_LOBBY,In Lobby,In Lobby
+CONNECTING,Connecting to server...,Verbinde zum Server...
+LOBBY_FAILED,Failed to create lobby. Server unreachable?,Lobby erstellen fehlgeschlagen. Server nicht erreichbar?
+PLAYERS,Players:,Spieler:
+CODE_COPIED,Code copied:,Code kopiert:
+STEAM_INVITE_SOON,Steam invite coming soon!,Steam-Einladung kommt bald!
+ENTER_CODE,Enter 6-character lobby code,6-stelligen Lobby-Code eingeben
+JOIN_FAILED,Join failed:,Beitreten fehlgeschlagen:
+MODE,Mode:,Modus:
+RESOLUTION,RESOLUTION,AUFLOESUNG
+FULLSCREEN,FULLSCREEN,VOLLBILD
+MASTER,MASTER,MASTER
+MUSIC,MUSIC,MUSIK
+SFX,SFX,EFFEKTE
+LANGUAGE,LANGUAGE,SPRACHE
+ON,ON,AN
+OFF,OFF,AUS
+SETTINGS_ADJUST,Use +/- or Arrow keys | ENTER to confirm,+/- oder Pfeiltasten | ENTER bestaetigen
+SETTINGS_NAV,Type command | BACKSPACE to delete | ESC to go back,Befehl tippen | BACKSPACE loeschen | ESC zurueck
+DEBUG_TOGGLE,F3 = Toggle Debug,F3 = Debug umschalten
+SCORE,SCORE:,PUNKTE:
+WAVE,WAVE:,WELLE:
+WPM,WPM:,WPM:
+ACCURACY,ACCURACY:,GENAUIGKEIT:
+MAX_COMBO,MAX COMBO:,MAX COMBO:
+ENEMIES,ENEMIES:,GEGNER:
+TIME,TIME:,ZEIT:
+PREVIEW,PREVIEW,VORSCHAU
+TYPE_TO_ATTACK,Type to attack!,Tippe zum Angreifen!
+PORTAL_HEALTH,Portal Health,Portal Leben

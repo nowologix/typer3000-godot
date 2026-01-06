@@ -1,7 +1,8 @@
-[gd_scene load_steps=3 format=3 uid="uid://game_over_state"]
+[gd_scene load_steps=4 format=3 uid="uid://game_over_state"]
 
 [ext_resource type="Script" path="res://scripts/states/game_over_state.gd" id="1_gameover"]
 [ext_resource type="VideoStream" path="res://assets/video/gameover_background.ogv" id="2_video"]
+[ext_resource type="FontFile" path="res://assets/fonts/EurostileBold.tres" id="3_bold_font"]
 
 [node name="GameOverState" type="Control"]
 layout_mode = 3
@@ -42,18 +43,23 @@ anchor_bottom = 1.0
 
 [node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer"]
 layout_mode = 2
-theme_override_constants/separation = 30
+theme_override_constants/separation = 15
 
 [node name="Title" type="Label" parent="CenterContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.164706, 0.541176, 1)
+theme_override_fonts/font = ExtResource("3_bold_font")
 theme_override_font_sizes/font_size = 64
 text = "GAME OVER"
 horizontal_alignment = 1
 
+[node name="Spacer1" type="Control" parent="CenterContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 10)
+layout_mode = 2
+
 [node name="StatsContainer" type="VBoxContainer" parent="CenterContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_constants/separation = 10
+theme_override_constants/separation = 8
 
 [node name="ScoreRow" type="HBoxContainer" parent="CenterContainer/VBoxContainer/StatsContainer"]
 layout_mode = 2
@@ -62,13 +68,14 @@ alignment = 1
 [node name="ScoreLabel" type="Label" parent="CenterContainer/VBoxContainer/StatsContainer/ScoreRow"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.533333, 0.533333, 0.6, 1)
-theme_override_font_sizes/font_size = 24
-text = "FINAL SCORE: "
+theme_override_font_sizes/font_size = 20
+text = "SCORE: "
 
 [node name="ScoreValue" type="Label" parent="CenterContainer/VBoxContainer/StatsContainer"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0, 0.898039, 1, 1)
-theme_override_font_sizes/font_size = 48
+theme_override_fonts/font = ExtResource("3_bold_font")
+theme_override_font_sizes/font_size = 36
 text = "0"
 horizontal_alignment = 1
 
@@ -79,14 +86,33 @@ alignment = 1
 [node name="WaveLabel" type="Label" parent="CenterContainer/VBoxContainer/StatsContainer/WaveRow"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.533333, 0.533333, 0.6, 1)
-theme_override_font_sizes/font_size = 20
-text = "WAVE REACHED: "
+theme_override_font_sizes/font_size = 18
+text = "WAVE: "
 
 [node name="WaveValue" type="Label" parent="CenterContainer/VBoxContainer/StatsContainer"]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.690196, 0, 1)
-theme_override_font_sizes/font_size = 32
+theme_override_fonts/font = ExtResource("3_bold_font")
+theme_override_font_sizes/font_size = 24
 text = "1"
+horizontal_alignment = 1
+
+[node name="WpmRow" type="HBoxContainer" parent="CenterContainer/VBoxContainer/StatsContainer"]
+layout_mode = 2
+alignment = 1
+
+[node name="WpmLabel" type="Label" parent="CenterContainer/VBoxContainer/StatsContainer/WpmRow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.533333, 0.533333, 0.6, 1)
+theme_override_font_sizes/font_size = 18
+text = "WPM: "
+
+[node name="WpmValue" type="Label" parent="CenterContainer/VBoxContainer/StatsContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.9, 1, 1)
+theme_override_fonts/font = ExtResource("3_bold_font")
+theme_override_font_sizes/font_size = 24
+text = "0"
 horizontal_alignment = 1
 
 [node name="AccuracyRow" type="HBoxContainer" parent="CenterContainer/VBoxContainer/StatsContainer"]
@@ -96,14 +122,33 @@ alignment = 1
 [node name="AccuracyLabel" type="Label" parent="CenterContainer/VBoxContainer/StatsContainer/AccuracyRow"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.533333, 0.533333, 0.6, 1)
-theme_override_font_sizes/font_size = 20
+theme_override_font_sizes/font_size = 18
 text = "ACCURACY: "
 
 [node name="AccuracyValue" type="Label" parent="CenterContainer/VBoxContainer/StatsContainer"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.486275, 1, 0, 1)
-theme_override_font_sizes/font_size = 28
+theme_override_fonts/font = ExtResource("3_bold_font")
+theme_override_font_sizes/font_size = 24
 text = "0%"
+horizontal_alignment = 1
+
+[node name="ComboRow" type="HBoxContainer" parent="CenterContainer/VBoxContainer/StatsContainer"]
+layout_mode = 2
+alignment = 1
+
+[node name="ComboLabel" type="Label" parent="CenterContainer/VBoxContainer/StatsContainer/ComboRow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.533333, 0.533333, 0.6, 1)
+theme_override_font_sizes/font_size = 18
+text = "MAX COMBO: "
+
+[node name="ComboValue" type="Label" parent="CenterContainer/VBoxContainer/StatsContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.5, 0, 1)
+theme_override_fonts/font = ExtResource("3_bold_font")
+theme_override_font_sizes/font_size = 24
+text = "0"
 horizontal_alignment = 1
 
 [node name="EnemiesRow" type="HBoxContainer" parent="CenterContainer/VBoxContainer/StatsContainer"]
@@ -113,36 +158,70 @@ alignment = 1
 [node name="EnemiesLabel" type="Label" parent="CenterContainer/VBoxContainer/StatsContainer/EnemiesRow"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.533333, 0.533333, 0.6, 1)
-theme_override_font_sizes/font_size = 20
-text = "ENEMIES DESTROYED: "
+theme_override_font_sizes/font_size = 18
+text = "ENEMIES: "
 
 [node name="EnemiesValue" type="Label" parent="CenterContainer/VBoxContainer/StatsContainer"]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.164706, 0.541176, 1)
-theme_override_font_sizes/font_size = 28
+theme_override_fonts/font = ExtResource("3_bold_font")
+theme_override_font_sizes/font_size = 24
 text = "0"
+horizontal_alignment = 1
+
+[node name="TimeRow" type="HBoxContainer" parent="CenterContainer/VBoxContainer/StatsContainer"]
+layout_mode = 2
+alignment = 1
+
+[node name="TimeLabel" type="Label" parent="CenterContainer/VBoxContainer/StatsContainer/TimeRow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.533333, 0.533333, 0.6, 1)
+theme_override_font_sizes/font_size = 18
+text = "TIME: "
+
+[node name="TimeValue" type="Label" parent="CenterContainer/VBoxContainer/StatsContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.7, 0.8, 1)
+theme_override_fonts/font = ExtResource("3_bold_font")
+theme_override_font_sizes/font_size = 24
+text = "0:00"
 horizontal_alignment = 1
 
 [node name="Separator" type="HSeparator" parent="CenterContainer/VBoxContainer"]
 layout_mode = 2
 
-[node name="RetryPrompt" type="Label" parent="CenterContainer/VBoxContainer"]
+[node name="CommandsContainer" type="VBoxContainer" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="RetryPrompt" type="Label" parent="CenterContainer/VBoxContainer/CommandsContainer"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0, 0.898039, 1, 1)
+theme_override_fonts/font = ExtResource("3_bold_font")
 theme_override_font_sizes/font_size = 24
 text = "RETRY"
 horizontal_alignment = 1
 
-[node name="MenuPrompt" type="Label" parent="CenterContainer/VBoxContainer"]
+[node name="MenuPrompt" type="Label" parent="CenterContainer/VBoxContainer/CommandsContainer"]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.690196, 0, 1)
+theme_override_fonts/font = ExtResource("3_bold_font")
 theme_override_font_sizes/font_size = 24
 text = "MENU"
+horizontal_alignment = 1
+
+[node name="StatsPrompt" type="Label" parent="CenterContainer/VBoxContainer/CommandsContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.9, 1, 1)
+theme_override_fonts/font = ExtResource("3_bold_font")
+theme_override_font_sizes/font_size = 24
+text = "STATS"
 horizontal_alignment = 1
 
 [node name="TypedDisplay" type="Label" parent="CenterContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.486275, 1, 0, 1)
+theme_override_fonts/font = ExtResource("3_bold_font")
 theme_override_font_sizes/font_size = 32
 text = ""
 horizontal_alignment = 1

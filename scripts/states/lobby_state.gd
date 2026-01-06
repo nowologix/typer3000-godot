@@ -2,14 +2,19 @@
 ## Multiplayer lobby - create or join games
 extends Control
 
-const COMMANDS := {
+# Command keys for translation lookup
+const COMMAND_KEYS := {
 	"HOST": "create_lobby",
 	"JOIN": "start_join_mode",
 	"READY": "toggle_ready",
 	"START": "start_game",
+	"INVITE": "invite_friend",
 	"SETTINGS": "open_settings",
 	"BACK": "go_back"
 }
+
+# Dynamic commands rebuilt on language change
+var commands := {}
 
 @onready var typed_display: Label = $CenterContainer/VBoxContainer/TypedDisplay
 @onready var status_label: Label = $CenterContainer/VBoxContainer/StatusLabel
@@ -20,16 +25,27 @@ const COMMANDS := {
 @onready var ready_prompt: Label = $CenterContainer/VBoxContainer/ReadyPrompt
 @onready var start_prompt: Label = $CenterContainer/VBoxContainer/StartPrompt
 @onready var settings_prompt: Label = $CenterContainer/VBoxContainer/SettingsPrompt
-
+@onready var invite_prompt: Label = $CenterContainer/VBoxContainer/InvitePrompt
+@onready var copy_prompt: Label = $CenterContainer/VBoxContainer/CopyPrompt
+@onready var mode_title: Label = $CenterContainer/VBoxContainer/ModeTitle
+@onready var paste_hint: Label = $CenterContainer/VBoxContainer/PasteHint
 
 var typed_buffer: String = ""
+var current_mode: String = ""
+var current_mode_title: String = ""
 var join_mode: bool = false
 var lobby_code_buffer: String = ""
 var is_ready: bool = false
+var ctrl_held: bool = false
 
 func _ready() -> void:
 	typed_buffer = ""
+	rebuild_commands()
 	update_display()
+
+	# Connect language change signal
+	if SignalBus.has_signal("language_changed"):
+		SignalBus.language_changed.connect(_on_language_changed)
 
 	# Connect network signals
 	SignalBus.network_connected.connect(_on_network_connected)
@@ -48,9 +64,20 @@ func on_enter(params: Dictionary) -> void:
 	join_mode = false
 	lobby_code_buffer = ""
 	is_ready = false
+
+	# Store mode info from mode select (if coming from HOST flow)
+	current_mode = params.get("mode", "")
+	current_mode_title = params.get("mode_title", "")
+	update_mode_display()
+
 	update_display()
 	update_status()
 	update_prompts()
+
+	# If returning from mode_select with action="host", create lobby now
+	if params.get("action", "") == "host" and current_mode != "":
+		DebugHelper.log_info("Creating lobby for mode: %s" % current_mode)
+		call_deferred("create_lobby")
 
 	# Show message if passed (e.g., from disconnect)
 	if params.has("message") and status_label:
@@ -59,6 +86,10 @@ func on_enter(params: Dictionary) -> void:
 
 func on_exit() -> void:
 	DebugHelper.log_info("LobbyState exiting")
+
+	# Disconnect language signal
+	if SignalBus.has_signal("language_changed") and SignalBus.language_changed.is_connected(_on_language_changed):
+		SignalBus.language_changed.disconnect(_on_language_changed)
 
 	# Disconnect signals
 	if SignalBus.network_connected.is_connected(_on_network_connected):
@@ -81,16 +112,33 @@ func on_exit() -> void:
 		SignalBus.network_game_start.disconnect(_on_game_start)
 
 func _input(event: InputEvent) -> void:
+	# Track CTRL/STRG key state for display
+	if event is InputEventKey:
+		if event.keycode == KEY_CTRL:
+			ctrl_held = event.pressed
+			update_display()
+	
 	if event is InputEventKey and event.pressed and not event.is_echo():
 		var char_code = event.unicode
+
+		# STRG+C to copy lobby code
+		if event.keycode == KEY_C and event.ctrl_pressed and NetworkManager.is_in_lobby():
+			copy_lobby_code()
+			return
 
 		if event.keycode == KEY_ESCAPE:
 			if join_mode:
 				join_mode = false
 				lobby_code_buffer = ""
 				update_display()
+				update_paste_hint()
 			else:
 				go_back()
+			return
+
+		# CTRL+V to paste lobby code
+		if event.keycode == KEY_V and event.ctrl_pressed and join_mode:
+			paste_lobby_code()
 			return
 
 		if event.keycode == KEY_BACKSPACE:
@@ -133,21 +181,23 @@ func _input(event: InputEvent) -> void:
 func update_display() -> void:
 	if typed_display:
 		if join_mode:
-			typed_display.text = "CODE: " + lobby_code_buffer + "_".repeat(6 - lobby_code_buffer.length())
+			var prefix = "STRG+" if ctrl_held else ""
+			typed_display.text = prefix + "CODE: " + lobby_code_buffer + "_".repeat(6 - lobby_code_buffer.length())
 		else:
-			typed_display.text = typed_buffer
+			var prefix = "STRG+" if ctrl_held else ""
+			typed_display.text = prefix + typed_buffer
 
 
 func check_commands() -> void:
-	for command in COMMANDS:
+	for command in commands:
 		if typed_buffer == command:
-			call(COMMANDS[command])
+			call(commands[command])
 			typed_buffer = ""
 			update_display()
 			return
 
 	var could_match = false
-	for command in COMMANDS:
+	for command in commands:
 		if command.begins_with(typed_buffer):
 			could_match = true
 			break
@@ -156,17 +206,41 @@ func check_commands() -> void:
 		typed_buffer = ""
 		update_display()
 
+func rebuild_commands() -> void:
+	commands.clear()
+	for key in COMMAND_KEYS:
+		var translated = Tr.t(key, key)
+		commands[translated] = COMMAND_KEYS[key]
+
+func _on_language_changed() -> void:
+	rebuild_commands()
+	update_display()
+	update_status()
+	update_prompts()
+
+
+func update_paste_hint() -> void:
+	if paste_hint:
+		paste_hint.visible = join_mode
+
+func update_mode_display() -> void:
+	if mode_title:
+		if current_mode_title != "":
+			mode_title.text = Tr.t("MODE", "Mode:") + " " + current_mode_title
+			mode_title.visible = true
+		else:
+			mode_title.visible = false
+
 func update_status() -> void:
 	if status_label:
 		if NetworkManager.is_in_lobby():
-			status_label.text = "In Lobby"
+			status_label.text = Tr.t("IN_LOBBY", "In Lobby")
 			status_label.add_theme_color_override("font_color", GameConfig.COLORS.acid_green)
 		elif NetworkManager.is_network_connected():
-			status_label.text = "Connected to Server"
+			status_label.text = Tr.t("CONNECTING", "Connecting to server...")
 			status_label.add_theme_color_override("font_color", GameConfig.COLORS.cyan)
 		else:
-			status_label.text = "Disconnected"
-			status_label.add_theme_color_override("font_color", GameConfig.COLORS.magenta)
+			status_label.text = ""
 
 	if code_label:
 		if NetworkManager.lobby_code != "":
@@ -177,16 +251,16 @@ func update_status() -> void:
 
 	if players_label:
 		if NetworkManager.is_in_lobby():
-			var player_list = "Players:\n"
+			var player_list = Tr.t("PLAYERS", "Players:") + "\n"
 			var my_status = ""
 			if NetworkManager.is_host:
 				my_status += " [HOST]"
 			if is_ready:
-				my_status += " [READY]"
+				my_status += " [" + Tr.t("READY", "READY") + "]"
 			player_list += "- %s (You)%s\n" % [NetworkManager.player_name, my_status]
 			for pid in NetworkManager.players:
 				var p = NetworkManager.players[pid]
-				player_list += "- %s%s\n" % [p.name, " [READY]" if p.ready else ""]
+				player_list += "- %s%s\n" % [p.name, " [" + Tr.t("READY", "READY") + "]" if p.ready else ""]
 			players_label.text = player_list
 			players_label.visible = true
 		else:
@@ -194,34 +268,57 @@ func update_status() -> void:
 
 func update_prompts() -> void:
 	var in_lobby = NetworkManager.is_in_lobby()
+	var is_host = NetworkManager.is_host
 	
 	# Before joining lobby: show HOST, JOIN
 	# After joining (client): show READY
-	# After joining (host): show START
+	# After joining (host): show START, INVITE, COPY
 	if host_prompt:
 		host_prompt.visible = not in_lobby
 	if join_prompt:
 		join_prompt.visible = not in_lobby
 	if ready_prompt:
-		ready_prompt.visible = in_lobby and not NetworkManager.is_host
+		ready_prompt.visible = in_lobby and not is_host
 	if start_prompt:
-		start_prompt.visible = in_lobby and NetworkManager.is_host
+		start_prompt.visible = in_lobby and is_host
+	if invite_prompt:
+		invite_prompt.visible = in_lobby and is_host
+	if copy_prompt:
+		copy_prompt.visible = in_lobby and is_host
 
 # ============================================
 # Command Handlers
 # ============================================
 
 func create_lobby() -> void:
-	DebugHelper.log_info("Creating lobby...")
+	# If we don't have a mode yet, go to mode select first
+	if current_mode == "":
+		DebugHelper.log_info("No mode selected, going to mode select...")
+		StateManager.change_state("mode_select", {"from": "lobby"})
+		return
+
+	# We have a mode, create the lobby
+	DebugHelper.log_info("Creating lobby for mode: %s" % current_mode)
 	if status_label:
-		status_label.text = "Creating lobby..."
-	NetworkManager.create_lobby()
+		status_label.text = Tr.t("CONNECTING", "Connecting to server...")
+		status_label.add_theme_color_override("font_color", GameConfig.COLORS.amber)
+
+	# Disable input while connecting
+	set_process_input(false)
+	await NetworkManager.create_lobby()
+	set_process_input(true)
+
+	if not NetworkManager.is_in_lobby():
+		if status_label:
+			status_label.text = Tr.t("LOBBY_FAILED", "Failed to create lobby. Server unreachable?")
+			status_label.add_theme_color_override("font_color", GameConfig.COLORS.magenta)
 
 func start_join_mode() -> void:
 	join_mode = true
 	lobby_code_buffer = ""
 	update_display()
-	DebugHelper.log_info("Enter 6-character lobby code")
+	update_paste_hint()
+	DebugHelper.log_info("Enter 6-character lobby code - CTRL+V to paste")
 
 func join_lobby_with_code() -> void:
 	var code = lobby_code_buffer.to_upper()
@@ -242,7 +339,39 @@ func start_game() -> void:
 	if not NetworkManager.is_host:
 		DebugHelper.log_warning("Only host can start the game")
 		return
-	NetworkManager.start_game()
+	NetworkManager.start_game(current_mode)
+
+func invite_friend() -> void:
+	# Placeholder for Steam Friends invite
+	DebugHelper.log_info("Steam Friends invite - not yet implemented")
+	if status_label:
+		status_label.text = Tr.t("STEAM_INVITE_SOON", "Steam invite coming soon!")
+		status_label.add_theme_color_override("font_color", GameConfig.COLORS.amber)
+
+func copy_lobby_code() -> void:
+	if NetworkManager.lobby_code != "":
+		DisplayServer.clipboard_set(NetworkManager.lobby_code)
+		DebugHelper.log_info("Lobby code copied: %s" % NetworkManager.lobby_code)
+		if status_label:
+			status_label.text = Tr.t("CODE_COPIED", "Code copied:") + " " + NetworkManager.lobby_code
+			status_label.add_theme_color_override("font_color", GameConfig.COLORS.acid_green)
+		SoundManager.play_word_complete()
+
+
+func paste_lobby_code() -> void:
+	var clipboard = DisplayServer.clipboard_get()
+	# Clean the clipboard - only keep alphanumeric chars
+	var clean_code = ""
+	for c in clipboard.to_upper():
+		if (c >= "A" and c <= "Z") or (c >= "0" and c <= "9"):
+			clean_code += c
+	
+	if clean_code.length() > 0:
+		lobby_code_buffer = clean_code.substr(0, 6)
+		SoundManager.play_menu_select()
+		update_display()
+		if lobby_code_buffer.length() == 6:
+			join_lobby_with_code()
 
 func open_settings() -> void:
 	StateManager.change_state("settings", {"return_to": "lobby"})
@@ -280,7 +409,7 @@ func _on_lobby_joined(code: String) -> void:
 func _on_lobby_join_failed(reason: String) -> void:
 	DebugHelper.log_error("Join failed: %s" % reason)
 	if status_label:
-		status_label.text = "Join failed: %s" % reason
+		status_label.text = Tr.t("JOIN_FAILED", "Join failed:") + " " + reason
 		status_label.add_theme_color_override("font_color", GameConfig.COLORS.magenta)
 	join_mode = false
 	lobby_code_buffer = ""
@@ -299,7 +428,24 @@ func _on_player_ready_changed(player_id: int, ready: bool) -> void:
 	DebugHelper.log_info("Player %d ready: %s" % [player_id, ready])
 	update_status()
 
-func _on_game_start(seed: int) -> void:
-	DebugHelper.log_info("Game starting with seed: %d" % seed)
+func _on_game_start(seed: int, mode: String) -> void:
+	# Use mode from network if available (important for client!)
+	var game_mode = mode if mode != "" else current_mode
+	DebugHelper.log_info("Game starting with seed: %d, mode: %s" % [seed, game_mode])
 	SoundManager.play_match_found()
-	StateManager.change_state("wordwar", {"seed": seed, "multiplayer": true})
+
+	var game_params = {
+		"seed": seed,
+		"multiplayer": true,
+		"mode": game_mode,
+		"mode_title": current_mode_title
+	}
+
+	# Route to correct game state based on mode
+	match game_mode:
+		"VS":
+			StateManager.change_state("vs_battle", game_params)
+		"COOP":
+			StateManager.change_state("coop_game", game_params)
+		"WORDWAR", _:
+			StateManager.change_state("wordwar", game_params)

@@ -5,6 +5,16 @@ extends Node
 
 enum Language { EN, DE }
 
+# Available languages in order (for cycling) - add new languages here
+const LANGUAGES := ["EN", "DE"]
+
+# Reserved words that should never be used as enemy words (powerups, commands, etc.)
+const RESERVED_WORDS := [
+	"FREEZE", "SHIELD", "DOUBLE", "HEAL", "NUKE", "SLOW",  # Powerup words
+	"BUILD", "GUN", "TESLA", "WALL",  # Build commands
+	"RESUME", "QUIT"  # Pause menu commands
+]
+
 var current_language: Language = Language.EN
 var used_words: Dictionary = {}  # Track used words per length group
 
@@ -204,6 +214,17 @@ func get_language() -> Language:
 func get_language_string() -> String:
 	return "DE" if current_language == Language.DE else "EN"
 
+func get_available_languages() -> Array:
+	return LANGUAGES
+
+func cycle_language() -> String:
+	var current_str: String = get_language_string()
+	var current_idx: int = LANGUAGES.find(current_str)
+	var next_idx: int = (current_idx + 1) % LANGUAGES.size()
+	var next_lang: String = LANGUAGES[next_idx]
+	set_language_string(next_lang)
+	return next_lang
+
 func reset_used_words() -> void:
 	used_words.clear()
 
@@ -239,6 +260,10 @@ func get_random_word(options: Dictionary = {}) -> String:
 	for length in lang_words.keys():
 		if length >= min_length and length <= max_length:
 			for word in lang_words[length]:
+				# Skip reserved words (powerups, commands)
+				if word in RESERVED_WORDS:
+					continue
+
 				# Skip used words
 				if word in used_words[range_key]:
 					continue
@@ -260,6 +285,9 @@ func get_random_word(options: Dictionary = {}) -> String:
 		for length in lang_words.keys():
 			if length >= min_length and length <= max_length:
 				for word in lang_words[length]:
+					# Skip reserved words
+					if word in RESERVED_WORDS:
+						continue
 					var skip := false
 					for letter in avoid_letters:
 						if word.begins_with(letter):

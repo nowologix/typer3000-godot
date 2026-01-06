@@ -1,0 +1,83 @@
+[gd_scene load_steps=7 format=3 uid="uid://vs_battle_state"]
+
+[ext_resource type="Script" path="res://scripts/states/vs_battle_state.gd" id="1_vs"]
+[ext_resource type="PackedScene" uid="uid://portal_scene" path="res://scenes/entities/portal.tscn" id="2_portal"]
+[ext_resource type="PackedScene" uid="uid://player_scene" path="res://scenes/entities/player.tscn" id="3_player"]
+[ext_resource type="PackedScene" uid="uid://typing_hud" path="res://scenes/ui/typing_hud.tscn" id="4_hud"]
+[ext_resource type="Script" path="res://scripts/systems/wave_manager.gd" id="5_wave"]
+
+[node name="VSBattleState" type="Node2D"]
+script = ExtResource("1_vs")
+
+[node name="Background" type="ColorRect" parent="."]
+offset_right = 1280.0
+offset_bottom = 720.0
+color = Color(0.05, 0.05, 0.1, 1)
+
+[node name="GameLayer" type="Node2D" parent="."]
+
+[node name="EnemyContainer" type="Node2D" parent="GameLayer"]
+
+[node name="Portal" parent="GameLayer" instance=ExtResource("2_portal")]
+position = Vector2(640, 360)
+
+[node name="Player" parent="GameLayer" instance=ExtResource("3_player")]
+position = Vector2(640, 360)
+
+[node name="WaveManager" type="Node" parent="."]
+script = ExtResource("5_wave")
+
+[node name="UILayer" type="CanvasLayer" parent="."]
+
+[node name="TypingHUD" parent="UILayer" instance=ExtResource("4_hud")]
+
+[node name="VSOverlay" type="Control" parent="UILayer"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="VSPanel" type="PanelContainer" parent="UILayer/VSOverlay"]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -100.0
+offset_top = 10.0
+offset_right = 100.0
+offset_bottom = 70.0
+
+[node name="VBox" type="VBoxContainer" parent="UILayer/VSOverlay/VSPanel"]
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="ModeLabel" type="Label" parent="UILayer/VSOverlay/VSPanel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.164706, 0.541176, 1)
+theme_override_font_sizes/font_size = 14
+text = "VS MODE"
+horizontal_alignment = 1
+
+[node name="ScoreRow" type="HBoxContainer" parent="UILayer/VSOverlay/VSPanel/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="YourScore" type="Label" parent="UILayer/VSOverlay/VSPanel/VBox/ScoreRow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0.898039, 1, 1)
+theme_override_font_sizes/font_size = 16
+text = "YOU: 0"
+
+[node name="VSSep" type="Label" parent="UILayer/VSOverlay/VSPanel/VBox/ScoreRow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 16
+text = "vs"
+horizontal_alignment = 1
+
+[node name="OpponentScore" type="Label" parent="UILayer/VSOverlay/VSPanel/VBox/ScoreRow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.164706, 0.541176, 1)
+theme_override_font_sizes/font_size = 16
+text = "OPP: 0"

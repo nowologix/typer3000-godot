@@ -17,7 +17,7 @@ var speed_multiplier: float = 1.0
 var base_speed: float = 80.0
 
 # Node references
-@onready var word_label: Label = $WordLabel
+@onready var word_label: RichTextLabel = $WordLabel
 @onready var sprite: ColorRect = $Sprite
 
 func _ready() -> void:
@@ -61,11 +61,19 @@ func set_frozen(freeze: bool) -> void:
 func set_speed_multiplier(multiplier: float) -> void:
 	speed_multiplier = multiplier
 
-func apply_slow(amount: float, duration: float) -> void:
+func is_slowed() -> bool:
+	return speed_multiplier < 1.0
+
+func apply_slow(amount: float, duration: float) -> bool:
+	# Return false if already slowed (don't re-apply)
+	if speed_multiplier < 1.0:
+		return false
+
 	speed_multiplier = amount
 	# Create timer to restore speed
 	var timer = get_tree().create_timer(duration)
 	timer.timeout.connect(func(): speed_multiplier = 1.0)
+	return true  # Slow was newly applied
 
 func take_tower_damage(damage: int) -> void:
 	# Towers deal damage by removing characters from the word
@@ -132,22 +140,34 @@ func update_word_display() -> void:
 		# Show typed portion in cyan, remaining in white
 		var typed_part = word.substr(0, typed_progress)
 		var remaining_part = word.substr(typed_progress)
-		word_label.text = "[color=#00E5FF]%s[/color]%s" % [typed_part, remaining_part]
-		# Enable BBCode if using RichTextLabel, otherwise just show plain
-		# For simple Label, we'll use modulate instead
-		word_label.text = word
-		# Highlight the enemy when being typed
+		word_label.text = "[center][color=#00E5FF]%s[/color]%s[/center]" % [typed_part, remaining_part]
+				# Highlight the enemy when being typed
 		if sprite:
 			sprite.color = GameConfig.COLORS.cyan
 	elif typed_progress >= word.length():
-		word_label.text = word
+		word_label.text = "[center]%s[/center]" % word
 		if sprite:
 			sprite.color = GameConfig.COLORS.acid_green
 	else:
-		word_label.text = word
+		word_label.text = "[center]%s[/center]" % word
 		if sprite:
 			sprite.color = GameConfig.COLORS.magenta
 
 func _on_tree_exiting() -> void:
 	# Clean up any references
 	target = null
+
+func set_word_color(color: Color) -> void:
+	# Set the color for the word label (used for COOP reservation)
+	if word_label == null:
+		return
+
+	# Convert color to hex for BBCode
+	var hex = "#%02X%02X%02X" % [int(color.r * 255), int(color.g * 255), int(color.b * 255)]
+
+	if typed_progress > 0 and typed_progress < word.length():
+		var typed_part = word.substr(0, typed_progress)
+		var remaining_part = word.substr(typed_progress)
+		word_label.text = "[center][color=#00E5FF]%s[/color][color=%s]%s[/color][/center]" % [typed_part, hex, remaining_part]
+	else:
+		word_label.text = "[center][color=%s]%s[/color][/center]" % [hex, word]

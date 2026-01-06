@@ -1,6 +1,6 @@
-[gd_scene load_steps=2 format=3 uid="uid://main_scene"]
+[gd_scene load_steps=2 format=3 uid="uid://cea46j0byi80e"]
 
-[ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
+[ext_resource type="Script" uid="uid://dty70be2oxvyo" path="res://scripts/main.gd" id="1_main"]
 
 [node name="Main" type="Control"]
 layout_mode = 3
@@ -16,6 +16,8 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 color = Color(0.0196078, 0.027451, 0.0509804, 1)
 
 [node name="StateContainer" type="Control" parent="."]
@@ -23,6 +25,8 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 
 [node name="DebugOverlay" type="CanvasLayer" parent="."]
 layer = 100

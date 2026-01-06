@@ -45,7 +45,7 @@ func _load_sounds() -> void:
 		"type_correct_3": "res://assets/audio/sfx/hit-marker_03.mp3",
 		"type_correct_4": "res://assets/audio/sfx/hit-marker_04.mp3",
 		"type_correct_5": "res://assets/audio/sfx/hit-marker_05.mp3",
-		"type_error": "res://assets/audio/sfx/static-noise_01.mp3",
+		"type_error": "res://assets/audio/sfx/short-static.mp3",
 		"word_complete": "res://assets/audio/sfx/tech-ok_01.mp3",
 
 		# Combat sounds
@@ -66,19 +66,30 @@ func _load_sounds() -> void:
 		"menu_back": "res://assets/audio/sfx/boomerang.mp3",
 
 		# PowerUp sounds
-		"powerup_spawn": "res://assets/audio/sfx/short-tech-loop_02.mp3",
+		"powerup_spawn": "res://assets/audio/sfx/powerup-drop.mp3",
 		"powerup_collect": "res://assets/audio/sfx/tech-upgrade_01.mp3",
 		"powerup_freeze": "res://assets/audio/sfx/airy-background-loop.mp3",
 		"powerup_shield": "res://assets/audio/sfx/tech-ok_01.mp3",
 		"powerup_bomb": "res://assets/audio/sfx/big-hit-kill_01.mp3",
+		"powerup_nuke": "res://assets/audio/sfx/nuke-sound.mp3",
 		"powerup_heal": "res://assets/audio/sfx/upgrade_01.mp3",
 		"powerup_expire": "res://assets/audio/sfx/boomerang.mp3",
+		"shield_activate": "res://assets/sounds/typer3000_shield-sound.mp3",
+		"slowdown": "res://assets/sounds/typer3000_slowdown.mp3",
+		"speedup": "res://assets/sounds/typer3000_speedup.mp3",
+		"freeze_effect": "res://assets/sounds/typer3000-freeze.mp3",
 
 		# Tower sounds
 		"tower_build": "res://assets/audio/sfx/build_01.mp3",
 		"tower_shoot": "res://assets/audio/sfx/hit-marker_01.mp3",
 		"tower_upgrade": "res://assets/audio/sfx/tech-upgrade_03.mp3",
 		"tower_sell": "res://assets/audio/sfx/build_02.mp3",
+		"electric_hit_1": "res://assets/audio/sfx/electric_hit_1.mp3",
+		"electric_hit_2": "res://assets/audio/sfx/electric_hit_2.mp3",
+		"electric_hit_3": "res://assets/audio/sfx/electric_hit_3.mp3",
+		"electric_hit_4": "res://assets/audio/sfx/electric_hit_4.mp3",
+		"electric_hit_5": "res://assets/audio/sfx/electric_hit_5.mp3",
+		"electric_hit_6": "res://assets/audio/sfx/electric_hit_6.mp3",
 
 		# Combo sounds
 		"combo_5": "res://assets/audio/sfx/tech-message_01.mp3",
@@ -93,6 +104,12 @@ func _load_sounds() -> void:
 		"victory": "res://assets/audio/sfx/construct-big_01.mp3",
 		"defeat": "res://assets/audio/sfx/tech-glitch_01.mp3",
 		"countdown": "res://assets/audio/sfx/tech-button_01.mp3",
+
+		# Voice announcements
+		"voice_welcome": "res://assets/audio/voice/welcometotyper3000.mp3",
+		"voice_kingofthecombo": "res://assets/audio/voice/kingofthecombo.mp3",
+		"voice_lobby_initiated": "res://assets/audio/voice/lobby-initiated.mp3",
+		"voice_impressive": "res://assets/audio/voice/impressive.mp3",
 	}
 
 	for key in sound_paths:
@@ -100,7 +117,7 @@ func _load_sounds() -> void:
 		if ResourceLoader.exists(path):
 			sounds[key] = load(path)
 		else:
-			DebugHelper.log_debug("Sound not found (placeholder): %s" % path)
+			DebugHelper.log_debug("Sound not found: %s" % path)
 
 func play_sfx(sound_name: String) -> void:
 	if not sounds.has(sound_name):
@@ -126,9 +143,11 @@ func play_music(music_path: String, loop: bool = true) -> void:
 		return
 
 	var music = load(music_path)
-	music_player.stream = music
-	music_player.volume_db = linear_to_db(music_volume * master_volume)
-	music_player.play()
+	if music:
+		music.loop = loop
+		music_player.stream = music
+		music_player.volume_db = linear_to_db(music_volume * master_volume)
+		music_player.play()
 
 func stop_music() -> void:
 	music_player.stop()
@@ -225,6 +244,12 @@ func play_tower_upgrade() -> void:
 func play_tower_sell() -> void:
 	play_sfx("tower_sell")
 
+func play_tesla_zap() -> void:
+	# Play random electric hit sound
+	var variants = ["electric_hit_1", "electric_hit_2", "electric_hit_3", "electric_hit_4", "electric_hit_5", "electric_hit_6"]
+	var chosen = variants[randi() % variants.size()]
+	play_sfx(chosen)
+
 # Combo sounds
 func play_combo_milestone(combo: int) -> void:
 	if combo >= 25:
@@ -259,7 +284,7 @@ func play_countdown() -> void:
 # Music paths
 const MUSIC_PATHS = {
 	"menu": "res://assets/audio/music/mainmusic.mp3",
-	"game": "res://assets/audio/music/game-music_01.mp3",
+	"game": "res://assets/audio/music/gameplay_track_01.mp3",
 	"pause": "res://assets/audio/music/pause-music.mp3",
 }
 
@@ -285,3 +310,32 @@ func play_sfx_pitched(sound_name: String, pitch_range: float = 0.1) -> void:
 			player.play()
 			player.finished.connect(func(): player.pitch_scale = 1.0, CONNECT_ONE_SHOT)
 			return
+
+# New powerup sounds
+func play_powerup_nuke() -> void:
+	play_sfx("powerup_nuke")
+
+func play_shield_activate() -> void:
+	play_sfx("shield_activate")
+
+func play_slowdown() -> void:
+	play_sfx("slowdown")
+
+func play_speedup() -> void:
+	play_sfx("speedup")
+
+func play_freeze_effect() -> void:
+	play_sfx("freeze_effect")
+
+# Voice announcements
+func play_voice_welcome() -> void:
+	play_sfx("voice_welcome")
+
+func play_voice_king_of_combo() -> void:
+	play_sfx("voice_kingofthecombo")
+
+func play_voice_lobby_initiated() -> void:
+	play_sfx("voice_lobby_initiated")
+
+func play_voice_impressive() -> void:
+	play_sfx("voice_impressive")

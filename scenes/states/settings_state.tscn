@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3 uid="uid://settings_state"]
+[gd_scene load_steps=3 format=3 uid="uid://settings_state"]
 
 [ext_resource type="Script" path="res://scripts/states/settings_state.gd" id="1_settings"]
+[ext_resource type="FontFile" path="res://assets/fonts/EurostileBold.tres" id="2_bold_font"]
 
 [node name="SettingsState" type="Control"]
 layout_mode = 3
@@ -29,6 +30,7 @@ theme_override_constants/separation = 15
 [node name="Title" type="Label" parent="CenterContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0, 0.898039, 1, 1)
+theme_override_fonts/font = ExtResource("2_bold_font")
 theme_override_font_sizes/font_size = 48
 text = "SETTINGS"
 horizontal_alignment = 1
@@ -43,6 +45,7 @@ bbcode_enabled = true
 text = "RESOLUTION  [1280x720]"
 fit_content = true
 scroll_active = false
+theme_override_fonts/normal_font = ExtResource("2_bold_font")
 theme_override_font_sizes/normal_font_size = 28
 
 [node name="FullscreenPrompt" type="RichTextLabel" parent="CenterContainer/VBoxContainer"]
@@ -51,6 +54,7 @@ bbcode_enabled = true
 text = "FULLSCREEN  [OFF]"
 fit_content = true
 scroll_active = false
+theme_override_fonts/normal_font = ExtResource("2_bold_font")
 theme_override_font_sizes/normal_font_size = 28
 
 [node name="MasterPrompt" type="RichTextLabel" parent="CenterContainer/VBoxContainer"]
@@ -59,6 +63,7 @@ bbcode_enabled = true
 text = "MASTER  [100%]"
 fit_content = true
 scroll_active = false
+theme_override_fonts/normal_font = ExtResource("2_bold_font")
 theme_override_font_sizes/normal_font_size = 28
 
 [node name="MusicPrompt" type="RichTextLabel" parent="CenterContainer/VBoxContainer"]
@@ -67,6 +72,7 @@ bbcode_enabled = true
 text = "MUSIC  [70%]"
 fit_content = true
 scroll_active = false
+theme_override_fonts/normal_font = ExtResource("2_bold_font")
 theme_override_font_sizes/normal_font_size = 28
 
 [node name="SfxPrompt" type="RichTextLabel" parent="CenterContainer/VBoxContainer"]
@@ -75,6 +81,7 @@ bbcode_enabled = true
 text = "SFX  [100%]"
 fit_content = true
 scroll_active = false
+theme_override_fonts/normal_font = ExtResource("2_bold_font")
 theme_override_font_sizes/normal_font_size = 28
 
 [node name="LanguagePrompt" type="RichTextLabel" parent="CenterContainer/VBoxContainer"]
@@ -83,6 +90,7 @@ bbcode_enabled = true
 text = "LANGUAGE  [EN]"
 fit_content = true
 scroll_active = false
+theme_override_fonts/normal_font = ExtResource("2_bold_font")
 theme_override_font_sizes/normal_font_size = 28
 
 [node name="BackPrompt" type="RichTextLabel" parent="CenterContainer/VBoxContainer"]
@@ -91,6 +99,7 @@ bbcode_enabled = true
 text = "BACK"
 fit_content = true
 scroll_active = false
+theme_override_fonts/normal_font = ExtResource("2_bold_font")
 theme_override_font_sizes/normal_font_size = 28
 
 [node name="Spacer2" type="Control" parent="CenterContainer/VBoxContainer"]
@@ -100,6 +109,7 @@ layout_mode = 2
 [node name="TypedDisplay" type="Label" parent="CenterContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0, 0.898039, 1, 1)
+theme_override_fonts/font = ExtResource("2_bold_font")
 theme_override_font_sizes/font_size = 32
 text = ""
 horizontal_alignment = 1

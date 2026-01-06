@@ -26,6 +26,9 @@ func _init_state_manager() -> void:
 	# Now change to menu
 	StateManager.change_state("menu")
 
+	# Play welcome voice
+	SoundManager.play_voice_welcome()
+
 func _process(_delta: float) -> void:
 	# Update FPS display
 	if show_debug_overlay and fps_label:

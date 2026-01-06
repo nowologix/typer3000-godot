@@ -2,12 +2,13 @@
 ## The player character that can move around the screen
 extends CharacterBody2D
 
-@export var max_hp: int = 5
+@export var max_hp: int = 20
 @export var speed: float = 200.0
 @export var radius: float = 15.0
 
-var current_hp: int = 5
+var current_hp: int = 20
 var invincibility_frames: int = 0
+var movement_enabled: bool = true  # For COOP: only P2 can move
 
 @onready var sprite: ColorRect = $Sprite
 @onready var hp_bar: ColorRect = $HPBar
@@ -16,7 +17,11 @@ var invincibility_frames: int = 0
 
 func _ready() -> void:
 	add_to_group("player")
+	SignalBus.player_healed.connect(_on_player_healed)
 	reset()
+
+func _on_player_healed(amount: int) -> void:
+	heal(amount)
 
 func reset() -> void:
 	current_hp = max_hp
@@ -24,21 +29,22 @@ func reset() -> void:
 	update_display()
 
 func _physics_process(delta: float) -> void:
-	# Handle movement input (arrow keys only)
+	# Handle movement input (arrow keys only) - only if movement is enabled
 	var input_dir = Vector2.ZERO
 
-	if Input.is_key_pressed(KEY_UP):
-		input_dir.y -= 1
-	if Input.is_key_pressed(KEY_DOWN):
-		input_dir.y += 1
-	if Input.is_key_pressed(KEY_LEFT):
-		input_dir.x -= 1
-	if Input.is_key_pressed(KEY_RIGHT):
-		input_dir.x += 1
+	if movement_enabled:
+		if Input.is_key_pressed(KEY_UP):
+			input_dir.y -= 1
+		if Input.is_key_pressed(KEY_DOWN):
+			input_dir.y += 1
+		if Input.is_key_pressed(KEY_LEFT):
+			input_dir.x -= 1
+		if Input.is_key_pressed(KEY_RIGHT):
+			input_dir.x += 1
 
-	# Normalize diagonal movement
-	if input_dir.length() > 0:
-		input_dir = input_dir.normalized()
+		# Normalize diagonal movement
+		if input_dir.length() > 0:
+			input_dir = input_dir.normalized()
 
 	velocity = input_dir * speed
 	move_and_slide()

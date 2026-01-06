@@ -85,16 +85,49 @@ signal lobby_join_failed(reason: String)
 signal player_joined(player_id: int, player_name: String)
 signal player_left(player_id: int)
 signal player_ready_changed(player_id: int, ready: bool)
-signal network_game_start(seed: int)
+signal network_game_start(seed: int, mode: String)
 signal network_score_update(player_id: int, score: int)
 signal network_word_completed(player_id: int, word: String)
 signal network_game_over(winner_id: int, final_scores: Dictionary)
+
+# ============================================
+# VS MODE SIGNALS
+# ============================================
+signal opponent_score_update(score: int)
+signal opponent_died(reason: String)
+
+# ============================================
+# COOP MODE SIGNALS (Host-Authoritative)
+# ============================================
+signal coop_partner_score(score: int)
+signal coop_enemy_killed(word: String, points: int)
+signal coop_enemy_killed_v2(data: Dictionary)  # New format with enemy_id
+signal coop_word_reserved(word: String, player_id: int)
+signal coop_word_released(word: String)
+signal coop_player_moved(position: Vector2)
+signal coop_switch_triggered()
+signal coop_switch()
+
+# Host -> Client sync signals
+signal coop_spawn_enemy(data: Dictionary)
+signal coop_spawn_powerup(data: Dictionary)
+signal coop_state(data: Dictionary)
+signal coop_typing(data: Dictionary)
+signal coop_nuke_typed(data: Dictionary)
+signal coop_powerup_collected(data: Dictionary)
+signal coop_game_over(data: Dictionary)
+signal coop_reserve(data: Dictionary)
+signal coop_release(data: Dictionary)
+signal coop_tower_placed(data: Dictionary)
 
 # ============================================
 # STEAM SIGNALS
 # ============================================
 signal achievement_unlocked(achievement_key: String, achievement_name: String)
 signal leaderboard_received(entries: Array)
+
+# UI/Settings signals
+signal language_changed()
 
 func _ready() -> void:
 	DebugHelper.log_info("SignalBus initialized")

@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3 uid="uid://pause_state"]
+[gd_scene load_steps=3 format=3 uid="uid://pause_state"]
 
 [ext_resource type="Script" path="res://scripts/states/pause_state.gd" id="1_pause"]
+[ext_resource type="FontFile" path="res://assets/fonts/EurostileBold.tres" id="2_bold_font"]
 
 [node name="PauseState" type="Control"]
 layout_mode = 3
@@ -29,6 +30,7 @@ theme_override_constants/separation = 30
 [node name="Title" type="Label" parent="CenterContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.690196, 0, 1)
+theme_override_fonts/font = ExtResource("2_bold_font")
 theme_override_font_sizes/font_size = 48
 text = "PAUSED"
 horizontal_alignment = 1
@@ -36,20 +38,23 @@ horizontal_alignment = 1
 [node name="ResumePrompt" type="Label" parent="CenterContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0, 0.898039, 1, 1)
+theme_override_fonts/font = ExtResource("2_bold_font")
 theme_override_font_sizes/font_size = 24
-text = "Type RESUME to continue"
+text = "RESUME"
 horizontal_alignment = 1
 
 [node name="QuitPrompt" type="Label" parent="CenterContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.164706, 0.541176, 1)
+theme_override_fonts/font = ExtResource("2_bold_font")
 theme_override_font_sizes/font_size = 24
-text = "Type QUIT to exit"
+text = "QUIT"
 horizontal_alignment = 1
 
 [node name="TypedDisplay" type="Label" parent="CenterContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.486275, 1, 0, 1)
+theme_override_fonts/font = ExtResource("2_bold_font")
 theme_override_font_sizes/font_size = 32
 text = ""
 horizontal_alignment = 1

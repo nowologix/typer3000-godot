@@ -43,6 +43,22 @@ theme_override_colors/font_color = Color(0.533333, 0.533333, 0.6, 1)
 theme_override_font_sizes/font_size = 24
 text = "ACC: 100%"
 
+[node name="ActiveWordContainer" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -80.0
+offset_bottom = -40.0
+
+[node name="ActiveWordLabel" type="Label" parent="ActiveWordContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0.898039, 1, 1)
+theme_override_font_sizes/font_size = 32
+text = "Type to attack!"
+horizontal_alignment = 1
+
 [node name="BottomBar" type="HBoxContainer" parent="."]
 layout_mode = 1
 anchors_preset = 12
@@ -50,16 +66,10 @@ anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 20.0
-offset_top = -60.0
+offset_top = -35.0
 offset_right = -20.0
 offset_bottom = -10.0
 theme_override_constants/separation = 40
-
-[node name="ActiveWordLabel" type="Label" parent="BottomBar"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0, 0.898039, 1, 1)
-theme_override_font_sizes/font_size = 32
-text = "Type to attack!"
 
 [node name="EnemiesLabel" type="Label" parent="BottomBar"]
 layout_mode = 2
@@ -72,3 +82,14 @@ layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.164706, 0.541176, 1)
 theme_override_font_sizes/font_size = 20
 text = "ERRORS: 0"
+
+[node name="PowerUpContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -200.0
+offset_top = 80.0
+offset_right = -20.0
+offset_bottom = 300.0
+theme_override_constants/separation = 5

@@ -57,6 +57,8 @@ const TOWER_STATS := {
 		"color": Color(1.0, 0.2, 0.2)
 	}
 }
+# Preload hit effect scene
+const BlueHitEffect = preload("res://scenes/effects/blue_hit_effect.tscn")
 
 @export var tower_type: TowerType = TowerType.BASIC
 @export var level: int = 1
@@ -139,6 +141,8 @@ func attack_target() -> void:
 func single_target_attack() -> void:
 	if target.has_method("take_tower_damage"):
 		target.take_tower_damage(stats.damage)
+	# Spawn blue hit effect on target
+	spawn_hit_effect(target.global_position)
 	DebugHelper.log_debug("%s attacks %s for %d damage" % [stats.name, target.word, stats.damage])
 
 func splash_attack() -> void:
@@ -152,6 +156,8 @@ func splash_attack() -> void:
 		if distance <= splash_radius:
 			if enemy.has_method("take_tower_damage"):
 				enemy.take_tower_damage(stats.damage)
+			# Spawn hit effect on each affected enemy
+			spawn_hit_effect(enemy.global_position)
 
 	DebugHelper.log_debug("%s splash attack at %s" % [stats.name, target.word])
 
@@ -166,6 +172,13 @@ func slow_attack() -> void:
 		# Note: Would need a timer to restore speed
 
 	DebugHelper.log_debug("%s slows %s" % [stats.name, target.word])
+
+func spawn_hit_effect(pos: Vector2) -> void:
+	if BlueHitEffect == null:
+		return
+	var effect = BlueHitEffect.instantiate()
+	effect.global_position = pos
+	get_tree().current_scene.add_child(effect)
 
 func flash_attack() -> void:
 	SoundManager.play_tower_shoot()

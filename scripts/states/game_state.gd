@@ -25,6 +25,10 @@ var score_multiplier: float = 1.0
 # Enemy scene for spawning
 var enemy_scene: PackedScene
 
+# Hit effect scenes for towers
+const BlueHitEffect = preload("res://scenes/effects/blue_hit_effect.tscn")
+const ElectricHitEffect = preload("res://scenes/effects/electric_hit_effect.tscn")
+
 # Collision constants
 const PLAYER_COLLISION_RADIUS: float = 20.0
 const ENEMY_COLLISION_RADIUS: float = 15.0
@@ -83,6 +87,7 @@ func on_enter(_params: Dictionary) -> void:
 
 	# Setup powerup manager
 	PowerUpManager.set_spawn_container(enemy_container)
+	PowerUpManager.set_portal_reference(portal)
 	PowerUpManager.reset()
 
 	# Setup tower manager (legacy mouse-based)
@@ -91,6 +96,7 @@ func on_enter(_params: Dictionary) -> void:
 	# Setup build manager (typing-based)
 	var portal_pos = portal.global_position if portal else Vector2(640, 360)
 	BuildManager.setup(enemy_container, portal_pos)
+	BuildManager.set_player_reference(player)
 	BuildManager.reset()
 	BuildManager.add_build_points(100)  # Starting build points
 
@@ -145,9 +151,11 @@ func _process(delta: float) -> void:
 	if enemy_container:
 		var enemies = []
 		for child in enemy_container.get_children():
-			if child.has_method("is_alive") and child.is_alive():
+			# Only include actual enemies, not powerups
+			if child.is_in_group("enemies") and child.has_method("is_alive") and child.is_alive():
 				enemies.append(child)
-		BuildManager.update_towers(delta, enemies)
+		var tower_results = BuildManager.update_towers(delta, enemies)
+		process_tower_results(tower_results)
 
 	# Check player-enemy collisions
 	check_player_collisions()
@@ -170,6 +178,51 @@ func check_player_collisions() -> void:
 			# Also kill the enemy on collision
 			if enemy.has_method("die"):
 				enemy.die()
+
+
+func process_tower_results(results: Array) -> void:
+	for result in results:
+		var action = result.get("action", "")
+		var data = result.get("data", {})
+		
+		match action:
+			"gun_fire":
+				# Spawn typing-style hit effect on target
+				var target = data.get("target")
+				if target and is_instance_valid(target):
+					EffectsManager.spawn_hit_effect(target.global_position, self)
+					SoundManager.play_tower_shoot()
+			"tesla_push":
+				# Spawn electric hit effect on affected enemies
+				var affected_enemies = data.get("enemies", [])
+				for enemy in affected_enemies:
+					if is_instance_valid(enemy):
+						spawn_electric_hit_effect(enemy.global_position)
+				if affected_enemies.size() > 0:
+					SoundManager.play_tesla_zap()
+			"freeze_slow":
+				# Spawn blue hit effect on affected enemies
+				var affected_enemies = data.get("enemies", [])
+				for enemy in affected_enemies:
+					if is_instance_valid(enemy):
+						spawn_blue_hit_effect(enemy.global_position)
+
+func spawn_blue_hit_effect(pos: Vector2) -> void:
+	if BlueHitEffect == null:
+		return
+	var effect = BlueHitEffect.instantiate()
+	effect.global_position = pos
+	add_child(effect)
+
+func spawn_electric_hit_effect(pos: Vector2) -> void:
+	DebugHelper.log_info("spawn_electric_hit_effect at %s" % str(pos))
+	if ElectricHitEffect == null:
+		DebugHelper.log_error("ElectricHitEffect is null!")
+		return
+	var effect = ElectricHitEffect.instantiate()
+	effect.global_position = pos
+	add_child(effect)
+	DebugHelper.log_info("Electric effect added to scene")
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.is_echo():
@@ -202,6 +255,10 @@ func _input(event: InputEvent) -> void:
 	# Debug: F2 = damage portal
 	if event.is_action_pressed("debug_damage_portal"):
 		debug_damage_portal()
+
+	# Debug: F3 = spawn random powerup
+	if event is InputEventKey and event.keycode == KEY_F3:
+		debug_spawn_powerup()
 
 func handle_pause_input(event: InputEvent) -> void:
 	if not (event is InputEventKey and event.pressed and not event.is_echo()):
@@ -287,6 +344,10 @@ func debug_damage_portal() -> void:
 	if portal and portal.has_method("take_damage"):
 		portal.take_damage(1)
 		DebugHelper.log_debug("Debug: Damaged portal")
+
+func debug_spawn_powerup() -> void:
+	PowerUpManager.spawn_random_powerup()
+	DebugHelper.log_debug("Debug: Spawned random powerup")
 
 func get_random_word() -> String:
 	# ASSUMPTION: Simple word list for now, will be replaced with JSON loading
@@ -375,10 +436,10 @@ func update_hud() -> void:
 			"accuracy": stats.accuracy,
 			"enemies_remaining": enemy_container.get_child_count() if enemy_container else 0,
 			"wave": wave_manager.current_wave if wave_manager else 0,
-			"portal_hp": portal.current_hp if portal else 0,
-			"portal_max_hp": portal.max_hp if portal else 0,
-			"player_hp": player.current_hp if player else 0,
-			"player_max_hp": player.max_hp if player else 0,
+			"portal_hp": portal.current_hp if portal and "current_hp" in portal else 0,
+			"portal_max_hp": portal.max_hp if portal and "max_hp" in portal else 0,
+			"player_hp": player.current_hp if player and "current_hp" in player else 0,
+			"player_max_hp": player.max_hp if player and "max_hp" in player else 0,
 			"active_word": TypingManager.active_enemy.word if TypingManager.active_enemy else "",
 			"typed_index": TypingManager.typed_index
 		})

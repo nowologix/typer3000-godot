@@ -1,0 +1,169 @@
+[gd_scene load_steps=8 format=3 uid="uid://coop_game_state"]
+
+[ext_resource type="Script" path="res://scripts/states/coop_game_state.gd" id="1_coop"]
+[ext_resource type="PackedScene" uid="uid://portal_scene" path="res://scenes/entities/portal.tscn" id="2_portal"]
+[ext_resource type="PackedScene" uid="uid://player_scene" path="res://scenes/entities/player.tscn" id="3_player"]
+[ext_resource type="PackedScene" uid="uid://typing_hud" path="res://scenes/ui/typing_hud.tscn" id="4_hud"]
+[ext_resource type="Script" path="res://scripts/systems/wave_manager.gd" id="5_wave"]
+[ext_resource type="Script" path="res://scripts/ui/build_hud.gd" id="6_build_hud"]
+
+[node name="CoopGameState" type="Node2D"]
+script = ExtResource("1_coop")
+
+[node name="Background" type="ColorRect" parent="."]
+offset_right = 1280.0
+offset_bottom = 720.0
+color = Color(0.02, 0.027, 0.05, 1)
+
+[node name="GameLayer" type="Node2D" parent="."]
+
+[node name="EnemyContainer" type="Node2D" parent="GameLayer"]
+
+[node name="Portal" parent="GameLayer" instance=ExtResource("2_portal")]
+position = Vector2(640, 360)
+
+[node name="Player" parent="GameLayer" instance=ExtResource("3_player")]
+position = Vector2(640, 500)
+
+[node name="WaveManager" type="Node" parent="."]
+script = ExtResource("5_wave")
+
+[node name="UILayer" type="CanvasLayer" parent="."]
+
+[node name="TypingHUD" parent="UILayer" instance=ExtResource("4_hud")]
+
+[node name="BuildHUD" type="Control" parent="UILayer"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+script = ExtResource("6_build_hud")
+
+[node name="CoopOverlay" type="Control" parent="UILayer"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="ModeLabel" type="Label" parent="UILayer/CoopOverlay"]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -60.0
+offset_top = 5.0
+offset_right = 60.0
+offset_bottom = 25.0
+theme_override_colors/font_color = Color(0.3, 0.9, 0.4, 1)
+theme_override_font_sizes/font_size = 16
+text = "COOP MODE"
+horizontal_alignment = 1
+
+[node name="P1Panel" type="PanelContainer" parent="UILayer/CoopOverlay"]
+layout_mode = 1
+offset_left = 10.0
+offset_top = 10.0
+offset_right = 150.0
+offset_bottom = 80.0
+
+[node name="VBox" type="VBoxContainer" parent="UILayer/CoopOverlay/P1Panel"]
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="P1Label" type="Label" parent="UILayer/CoopOverlay/P1Panel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0.898039, 1, 1)
+theme_override_font_sizes/font_size = 14
+text = "PLAYER 1"
+horizontal_alignment = 1
+
+[node name="P1Role" type="Label" parent="UILayer/CoopOverlay/P1Panel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0.898039, 1, 1)
+theme_override_font_sizes/font_size = 20
+text = "PORTAL"
+horizontal_alignment = 1
+
+[node name="P1HP" type="Label" parent="UILayer/CoopOverlay/P1Panel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 14
+text = "HP: 20"
+horizontal_alignment = 1
+
+[node name="P2Panel" type="PanelContainer" parent="UILayer/CoopOverlay"]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -150.0
+offset_top = 10.0
+offset_right = -10.0
+offset_bottom = 80.0
+
+[node name="VBox" type="VBoxContainer" parent="UILayer/CoopOverlay/P2Panel"]
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="P2Label" type="Label" parent="UILayer/CoopOverlay/P2Panel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.164706, 0.541176, 1)
+theme_override_font_sizes/font_size = 14
+text = "PLAYER 2"
+horizontal_alignment = 1
+
+[node name="P2Role" type="Label" parent="UILayer/CoopOverlay/P2Panel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.164706, 0.541176, 1)
+theme_override_font_sizes/font_size = 20
+text = "PLAYER"
+horizontal_alignment = 1
+
+[node name="P2HP" type="Label" parent="UILayer/CoopOverlay/P2Panel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 14
+text = "HP: 20"
+horizontal_alignment = 1
+
+[node name="SwitchHint" type="Label" parent="UILayer/CoopOverlay"]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -150.0
+offset_top = -30.0
+offset_right = 150.0
+offset_bottom = -10.0
+theme_override_colors/font_color = Color(0.5, 0.5, 0.6, 1)
+theme_override_font_sizes/font_size = 12
+text = "SWITCH = swap roles | BUILD = place towers (P2)"
+horizontal_alignment = 1
+
+[node name="SwitchOverlay" type="ColorRect" parent="UILayer"]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(1, 1, 1, 0)
+
+[node name="SwitchLabel" type="Label" parent="UILayer/SwitchOverlay"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -100.0
+offset_top = -40.0
+offset_right = 100.0
+offset_bottom = 40.0
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_font_sizes/font_size = 64
+text = "SWITCH!"
+horizontal_alignment = 1
+vertical_alignment = 1
