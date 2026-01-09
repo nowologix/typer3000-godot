@@ -9,11 +9,19 @@ const COMMAND_KEYS := {
 	"READY": "toggle_ready",
 	"START": "start_game",
 	"INVITE": "invite_friend",
-	"SETTINGS": "open_settings",
 	"BACK": "go_back"
 }
 
-# Dynamic commands rebuilt on language change
+# German translations for commands
+const COMMAND_TRANSLATIONS_DE := {
+	"ERSTELLEN": "HOST",
+	"BEITRETEN": "JOIN",
+	"BEREIT": "READY",
+	"EINLADEN": "INVITE",
+	"ZURÜCK": "BACK"
+}
+
+# Dynamic commands rebuilt on language change (includes both EN and DE)
 var commands := {}
 
 @onready var typed_display: Label = $CenterContainer/VBoxContainer/TypedDisplay
@@ -24,11 +32,11 @@ var commands := {}
 @onready var join_prompt: Label = $CenterContainer/VBoxContainer/JoinPrompt
 @onready var ready_prompt: Label = $CenterContainer/VBoxContainer/ReadyPrompt
 @onready var start_prompt: Label = $CenterContainer/VBoxContainer/StartPrompt
-@onready var settings_prompt: Label = $CenterContainer/VBoxContainer/SettingsPrompt
 @onready var invite_prompt: Label = $CenterContainer/VBoxContainer/InvitePrompt
 @onready var copy_prompt: Label = $CenterContainer/VBoxContainer/CopyPrompt
 @onready var mode_title: Label = $CenterContainer/VBoxContainer/ModeTitle
 @onready var paste_hint: Label = $CenterContainer/VBoxContainer/PasteHint
+@onready var back_prompt: Label = $CenterContainer/VBoxContainer/BackPrompt
 
 var typed_buffer: String = ""
 var current_mode: String = ""
@@ -37,10 +45,15 @@ var join_mode: bool = false
 var lobby_code_buffer: String = ""
 var is_ready: bool = false
 var ctrl_held: bool = false
+var hovered_command: String = ""
+var label_to_key: Dictionary = {}
+
+const COLOR_HOVER := Color(0, 0.898, 1)  # Cyan
 
 func _ready() -> void:
 	typed_buffer = ""
 	rebuild_commands()
+	setup_mouse_support()
 	update_display()
 
 	# Connect language change signal
@@ -60,6 +73,7 @@ func _ready() -> void:
 
 func on_enter(params: Dictionary) -> void:
 	DebugHelper.log_info("LobbyState entered")
+	MenuBackground.show_background()
 	typed_buffer = ""
 	join_mode = false
 	lobby_code_buffer = ""
@@ -112,6 +126,18 @@ func on_exit() -> void:
 		SignalBus.network_game_start.disconnect(_on_game_start)
 
 func _input(event: InputEvent) -> void:
+	# Mouse back button
+	if event is InputEventMouseButton and event.pressed:
+		if event.button_index == MOUSE_BUTTON_XBUTTON1:
+			if join_mode:
+				join_mode = false
+				lobby_code_buffer = ""
+				update_display()
+				update_paste_hint()
+			else:
+				go_back()
+			return
+
 	# Track CTRL/STRG key state for display
 	if event is InputEventKey:
 		if event.keycode == KEY_CTRL:
@@ -156,8 +182,9 @@ func _input(event: InputEvent) -> void:
 				join_lobby_with_code()
 			return
 
-		# Check for letters (A-Z, a-z)
+		# Check for letters (A-Z, a-z) and German umlauts
 		var is_letter = (char_code >= 65 and char_code <= 90) or (char_code >= 97 and char_code <= 122)
+		var is_umlaut = char_code in [196, 214, 220, 228, 246, 252]  # Ä Ö Ü ä ö ü
 		# Check for numbers (0-9)
 		var is_number = char_code >= 48 and char_code <= 57
 
@@ -171,12 +198,46 @@ func _input(event: InputEvent) -> void:
 					if lobby_code_buffer.length() == 6:
 						join_lobby_with_code()
 		else:
-			# In command mode, only accept letters
-			if is_letter:
+			# In command mode, accept letters and umlauts
+			if is_letter or is_umlaut:
 				var char_upper = char(char_code).to_upper()
 				typed_buffer += char_upper
 				update_display()
 				check_commands()
+
+func setup_mouse_support() -> void:
+	label_to_key[host_prompt] = "HOST"
+	label_to_key[join_prompt] = "JOIN"
+	label_to_key[ready_prompt] = "READY"
+	label_to_key[start_prompt] = "START"
+	label_to_key[invite_prompt] = "INVITE"
+	label_to_key[back_prompt] = "BACK"
+	for label in label_to_key.keys():
+		if label:
+			label.mouse_filter = Control.MOUSE_FILTER_STOP
+			label.mouse_entered.connect(_on_label_mouse_entered.bind(label))
+			label.mouse_exited.connect(_on_label_mouse_exited.bind(label))
+			label.gui_input.connect(_on_label_gui_input.bind(label))
+
+func _on_label_mouse_entered(label: Label) -> void:
+	if InputMode.is_keyboard_mode():
+		return
+	var key = label_to_key.get(label, "")
+	if key and label.visible:
+		hovered_command = key
+		SoundManager.play_menu_select()
+		update_prompts()
+
+func _on_label_mouse_exited(_label: Label) -> void:
+	hovered_command = ""
+	update_prompts()
+
+func _on_label_gui_input(event: InputEvent, label: Label) -> void:
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		var key = label_to_key.get(label, "")
+		if key and label.visible and COMMAND_KEYS.has(key):
+			SoundManager.play_word_complete()
+			call(COMMAND_KEYS[key])
 
 func update_display() -> void:
 	if typed_display:
@@ -208,12 +269,18 @@ func check_commands() -> void:
 
 func rebuild_commands() -> void:
 	commands.clear()
+	# Always add English commands
 	for key in COMMAND_KEYS:
-		var translated = Tr.t(key, key)
-		commands[translated] = COMMAND_KEYS[key]
+		commands[key] = COMMAND_KEYS[key]
+	# Also add German translations so both work
+	for de_cmd in COMMAND_TRANSLATIONS_DE:
+		var en_key = COMMAND_TRANSLATIONS_DE[de_cmd]
+		if COMMAND_KEYS.has(en_key):
+			commands[de_cmd] = COMMAND_KEYS[en_key]
 
 func _on_language_changed() -> void:
 	rebuild_commands()
+	setup_mouse_support()
 	update_display()
 	update_status()
 	update_prompts()
@@ -285,6 +352,19 @@ func update_prompts() -> void:
 		invite_prompt.visible = in_lobby and is_host
 	if copy_prompt:
 		copy_prompt.visible = in_lobby and is_host
+
+	# Back is always visible
+	if back_prompt:
+		back_prompt.visible = true
+
+	# Apply hover highlighting
+	for label in label_to_key.keys():
+		if label:
+			var key = label_to_key.get(label, "")
+			if key == hovered_command and label.visible:
+				label.add_theme_color_override("font_color", COLOR_HOVER)
+			else:
+				label.remove_theme_color_override("font_color")
 
 # ============================================
 # Command Handlers
@@ -373,9 +453,6 @@ func paste_lobby_code() -> void:
 		if lobby_code_buffer.length() == 6:
 			join_lobby_with_code()
 
-func open_settings() -> void:
-	StateManager.change_state("settings", {"return_to": "lobby"})
-
 func go_back() -> void:
 	if NetworkManager.is_in_lobby():
 		NetworkManager.leave_lobby()
@@ -428,17 +505,24 @@ func _on_player_ready_changed(player_id: int, ready: bool) -> void:
 	DebugHelper.log_info("Player %d ready: %s" % [player_id, ready])
 	update_status()
 
-func _on_game_start(seed: int, mode: String) -> void:
+func _on_game_start(seed: int, mode: String, language: String) -> void:
 	# Use mode from network if available (important for client!)
 	var game_mode = mode if mode != "" else current_mode
-	DebugHelper.log_info("Game starting with seed: %d, mode: %s" % [seed, game_mode])
+	DebugHelper.log_info("Game starting with seed: %d, mode: %s, language: %s" % [seed, game_mode, language])
+
+	# Apply host's language for this multiplayer session
+	WordSetLoader.set_language_string(language)
+	AphorismLoader.set_language_string(language)
+	DebugHelper.log_info("Multiplayer: Using host language: %s" % language)
+
 	SoundManager.play_match_found()
 
 	var game_params = {
 		"seed": seed,
 		"multiplayer": true,
 		"mode": game_mode,
-		"mode_title": current_mode_title
+		"mode_title": current_mode_title,
+		"language": language
 	}
 
 	# Route to correct game state based on mode

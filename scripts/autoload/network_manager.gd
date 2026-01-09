@@ -210,9 +210,10 @@ func process_message(message: String) -> void:
 			state = ConnectionState.IN_GAME
 			var game_seed = data.get("seed", randi())
 			var mode = data.get("mode", "")
+			var language = data.get("language", "EN")
 			game_mode = mode
-			DebugHelper.log_info("NetworkManager: Game starting with seed %d, mode %s" % [game_seed, mode])
-			SignalBus.network_game_start.emit(game_seed, mode)
+			DebugHelper.log_info("NetworkManager: Game starting with seed %d, mode %s, language %s" % [game_seed, mode, language])
+			SignalBus.network_game_start.emit(game_seed, mode, language)
 		"wordwar_state":
 			# Full game state sync from host
 			if data.has("state"):
@@ -269,6 +270,16 @@ func process_message(message: String) -> void:
 		"coop_tower_placed":
 			# Partner placed a tower (P2 -> Host)
 			SignalBus.coop_tower_placed.emit(data)
+		"coop_tower_effect":
+			# Tower effect (Host -> Client)
+			SignalBus.coop_tower_effect.emit(data)
+		"score_update":
+			# VS mode: Opponent score update
+			var opponent_score = int(data.get("score", 0))
+			SignalBus.opponent_score_update.emit(opponent_score)
+		"game_over":
+			# VS mode: Opponent game over (they died)
+			SignalBus.vs_opponent_game_over.emit(data)
 		_:
 			DebugHelper.log_debug("NetworkManager: Unknown message type: %s" % msg_type)
 
@@ -316,12 +327,13 @@ func start_game(mode: String = "") -> void:
 		return
 	# Generate seed and send to all players
 	var game_seed = randi()
+	var host_language = SaveManager.get_setting("language", "EN")
 	game_mode = mode
-	send_message("start_game", {"seed": game_seed, "mode": mode})
+	send_message("start_game", {"seed": game_seed, "mode": mode, "language": host_language})
 	# Host also transitions to game
 	state = ConnectionState.IN_GAME
-	DebugHelper.log_info("NetworkManager: Host starting game with seed %d, mode %s" % [game_seed, mode])
-	SignalBus.network_game_start.emit(game_seed, mode)
+	DebugHelper.log_info("NetworkManager: Host starting game with seed %d, mode %s, language %s" % [game_seed, mode, host_language])
+	SignalBus.network_game_start.emit(game_seed, mode, host_language)
 
 func send_score_update(score: int) -> void:
 	send_message("score_update", {"score": score})
@@ -329,8 +341,12 @@ func send_score_update(score: int) -> void:
 func send_word_completed(word: String) -> void:
 	send_message("word_completed", {"word": word})
 
-func send_game_over(won: bool, final_score: int) -> void:
-	send_message("game_over", {"won": won, "score": final_score})
+func send_game_over(won: bool, final_score: int, stats: Dictionary = {}) -> void:
+	var data = {"won": won, "score": final_score}
+	# Include full stats if provided
+	if not stats.is_empty():
+		data["stats"] = stats
+	send_message("game_over", data)
 
 func send_coop_score(score: int) -> void:
 	send_message("coop_score", {"score": score})

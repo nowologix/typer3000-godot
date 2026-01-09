@@ -21,8 +21,17 @@ const HIT_TOTAL_FRAMES := 19
 const HIT_FPS := 45.0
 const HIT_SCALE := 0.5  # Scale down for display
 
+# Tower placement effect configuration
+const TOWER_PLACE_FRAME_SIZE := Vector2(256, 256)
+const TOWER_PLACE_COLUMNS := 10
+const TOWER_PLACE_TOTAL_FRAMES := 74
+const TOWER_PLACE_FPS := 30.0
+const TOWER_PLACE_SCALE := 0.5  # Scale for tower placement effect
+var tower_place_texture: Texture2D = null
+
 func _ready() -> void:
 	_load_hit_textures()
+	_load_tower_place_texture()
 	if hit_textures.size() > 0:
 		DebugHelper.log_info("EffectsManager loaded %d hit effects" % hit_textures.size())
 
@@ -33,6 +42,28 @@ func _load_hit_textures() -> void:
 			hit_textures.append(load(path))
 		else:
 			DebugHelper.log_debug("Hit effect not found: %s" % path)
+
+func _load_tower_place_texture() -> void:
+	var path = "res://assets/sprites/effects/tower_place_effect_sheet.png"
+	tower_place_texture = _load_image_direct(path)
+	if tower_place_texture:
+		DebugHelper.log_info("EffectsManager: Tower placement effect loaded")
+	else:
+		DebugHelper.log_warning("EffectsManager: Failed to load tower placement effect")
+
+func _load_image_direct(res_path: String) -> ImageTexture:
+	# Load PNG directly at runtime (bypasses import system)
+	var abs_path = ProjectSettings.globalize_path(res_path)
+	var image = Image.new()
+	var err = image.load(abs_path)
+	if err == OK:
+		return ImageTexture.create_from_image(image)
+	# Fallback: Try resource loader
+	if ResourceLoader.exists(res_path):
+		var tex = load(res_path)
+		if tex:
+			return tex
+	return null
 
 func _process(delta: float) -> void:
 	# Apply screen shake decay
@@ -176,3 +207,49 @@ func word_complete_effect(position: Vector2, word: String, combo: int, parent: N
 	# Combo popup (only for significant combos)
 	if combo >= 5 and combo % 5 == 0:
 		spawn_combo_popup(position + Vector2(0, -50), combo, parent)
+
+func spawn_tower_place_effect(position: Vector2, parent: Node) -> void:
+	if tower_place_texture == null:
+		# Fallback to particles if no texture
+		spawn_particles_burst(position, GameConfig.COLORS.cyan, 12, parent)
+		return
+
+	# Create animated sprite
+	var effect = AnimatedSprite2D.new()
+	effect.position = position
+	effect.z_index = 50  # Below UI but above game elements
+	effect.scale = Vector2(TOWER_PLACE_SCALE, TOWER_PLACE_SCALE)
+
+	# Create sprite frames from the texture
+	var frames = SpriteFrames.new()
+	frames.add_animation("place")
+	frames.set_animation_speed("place", TOWER_PLACE_FPS)
+	frames.set_animation_loop("place", false)
+
+	# Extract frames from spritesheet
+	for frame_idx in range(TOWER_PLACE_TOTAL_FRAMES):
+		var atlas = AtlasTexture.new()
+		atlas.atlas = tower_place_texture
+		var col = frame_idx % TOWER_PLACE_COLUMNS
+		var row = frame_idx / TOWER_PLACE_COLUMNS
+		atlas.region = Rect2(
+			col * TOWER_PLACE_FRAME_SIZE.x,
+			row * TOWER_PLACE_FRAME_SIZE.y,
+			TOWER_PLACE_FRAME_SIZE.x,
+			TOWER_PLACE_FRAME_SIZE.y
+		)
+		frames.add_frame("place", atlas)
+
+	effect.sprite_frames = frames
+	effect.animation = "place"
+
+	# Use additive blending for glow effect
+	effect.material = CanvasItemMaterial.new()
+	effect.material.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+
+	# Add to scene
+	parent.add_child(effect)
+
+	# Play and auto-remove
+	effect.play("place")
+	effect.animation_finished.connect(func(): effect.queue_free())

@@ -15,108 +15,238 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-color = Color(0.05, 0.05, 0.1, 1)
+color = Color(0.05, 0.05, 0.1, 0.85)
 
-[node name="CenterContainer" type="CenterContainer" parent="."]
+[node name="MarginContainer" type="MarginContainer" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+theme_override_constants/margin_left = 120
+theme_override_constants/margin_top = 80
+theme_override_constants/margin_right = 120
+theme_override_constants/margin_bottom = 80
 
-[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
 layout_mode = 2
-theme_override_constants/separation = 15
+theme_override_constants/separation = 8
 
-[node name="Title" type="Label" parent="CenterContainer/VBoxContainer"]
+[node name="Title" type="Label" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0, 0.898039, 1, 1)
 theme_override_fonts/font = ExtResource("2_bold_font")
-theme_override_font_sizes/font_size = 48
+theme_override_font_sizes/font_size = 42
 text = "SETTINGS"
-horizontal_alignment = 1
 
-[node name="Spacer" type="Control" parent="CenterContainer/VBoxContainer"]
-custom_minimum_size = Vector2(0, 20)
+[node name="Spacer" type="Control" parent="MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 30)
 layout_mode = 2
 
-[node name="ResolutionPrompt" type="RichTextLabel" parent="CenterContainer/VBoxContainer"]
+[node name="ResolutionRow" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="Label" type="RichTextLabel" parent="MarginContainer/VBoxContainer/ResolutionRow"]
+custom_minimum_size = Vector2(280, 0)
 layout_mode = 2
 bbcode_enabled = true
-text = "RESOLUTION  [1280x720]"
+text = "RESOLUTION"
 fit_content = true
 scroll_active = false
 theme_override_fonts/normal_font = ExtResource("2_bold_font")
-theme_override_font_sizes/normal_font_size = 28
+theme_override_font_sizes/normal_font_size = 24
 
-[node name="FullscreenPrompt" type="RichTextLabel" parent="CenterContainer/VBoxContainer"]
+[node name="OptionButton" type="OptionButton" parent="MarginContainer/VBoxContainer/ResolutionRow"]
+custom_minimum_size = Vector2(220, 40)
+layout_mode = 2
+theme_override_fonts/font = ExtResource("2_bold_font")
+theme_override_font_sizes/font_size = 18
+
+[node name="FullscreenRow" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="Label" type="RichTextLabel" parent="MarginContainer/VBoxContainer/FullscreenRow"]
+custom_minimum_size = Vector2(280, 0)
 layout_mode = 2
 bbcode_enabled = true
-text = "FULLSCREEN  [OFF]"
+text = "FULLSCREEN"
 fit_content = true
 scroll_active = false
 theme_override_fonts/normal_font = ExtResource("2_bold_font")
-theme_override_font_sizes/normal_font_size = 28
+theme_override_font_sizes/normal_font_size = 24
 
-[node name="MasterPrompt" type="RichTextLabel" parent="CenterContainer/VBoxContainer"]
+[node name="CheckButton" type="CheckButton" parent="MarginContainer/VBoxContainer/FullscreenRow"]
+custom_minimum_size = Vector2(80, 40)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+
+[node name="Spacer2" type="Control" parent="MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 15)
+layout_mode = 2
+
+[node name="MasterRow" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="Label" type="RichTextLabel" parent="MarginContainer/VBoxContainer/MasterRow"]
+custom_minimum_size = Vector2(280, 0)
 layout_mode = 2
 bbcode_enabled = true
-text = "MASTER  [100%]"
+text = "MASTER"
 fit_content = true
 scroll_active = false
 theme_override_fonts/normal_font = ExtResource("2_bold_font")
-theme_override_font_sizes/normal_font_size = 28
+theme_override_font_sizes/normal_font_size = 24
 
-[node name="MusicPrompt" type="RichTextLabel" parent="CenterContainer/VBoxContainer"]
+[node name="HSlider" type="HSlider" parent="MarginContainer/VBoxContainer/MasterRow"]
+custom_minimum_size = Vector2(250, 30)
+layout_mode = 2
+min_value = 0.0
+max_value = 100.0
+step = 1.0
+value = 100.0
+
+[node name="Value" type="Label" parent="MarginContainer/VBoxContainer/MasterRow"]
+custom_minimum_size = Vector2(60, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0.898039, 1, 1)
+theme_override_fonts/font = ExtResource("2_bold_font")
+theme_override_font_sizes/font_size = 20
+text = "100%"
+horizontal_alignment = 2
+
+[node name="MusicRow" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="Label" type="RichTextLabel" parent="MarginContainer/VBoxContainer/MusicRow"]
+custom_minimum_size = Vector2(280, 0)
 layout_mode = 2
 bbcode_enabled = true
-text = "MUSIC  [70%]"
+text = "MUSIC"
 fit_content = true
 scroll_active = false
 theme_override_fonts/normal_font = ExtResource("2_bold_font")
-theme_override_font_sizes/normal_font_size = 28
+theme_override_font_sizes/normal_font_size = 24
 
-[node name="SfxPrompt" type="RichTextLabel" parent="CenterContainer/VBoxContainer"]
+[node name="HSlider" type="HSlider" parent="MarginContainer/VBoxContainer/MusicRow"]
+custom_minimum_size = Vector2(250, 30)
+layout_mode = 2
+min_value = 0.0
+max_value = 100.0
+step = 1.0
+value = 70.0
+
+[node name="Value" type="Label" parent="MarginContainer/VBoxContainer/MusicRow"]
+custom_minimum_size = Vector2(60, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0.898039, 1, 1)
+theme_override_fonts/font = ExtResource("2_bold_font")
+theme_override_font_sizes/font_size = 20
+text = "70%"
+horizontal_alignment = 2
+
+[node name="SfxRow" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="Label" type="RichTextLabel" parent="MarginContainer/VBoxContainer/SfxRow"]
+custom_minimum_size = Vector2(280, 0)
 layout_mode = 2
 bbcode_enabled = true
-text = "SFX  [100%]"
+text = "SFX"
 fit_content = true
 scroll_active = false
 theme_override_fonts/normal_font = ExtResource("2_bold_font")
-theme_override_font_sizes/normal_font_size = 28
+theme_override_font_sizes/normal_font_size = 24
 
-[node name="LanguagePrompt" type="RichTextLabel" parent="CenterContainer/VBoxContainer"]
+[node name="HSlider" type="HSlider" parent="MarginContainer/VBoxContainer/SfxRow"]
+custom_minimum_size = Vector2(250, 30)
+layout_mode = 2
+min_value = 0.0
+max_value = 100.0
+step = 1.0
+value = 100.0
+
+[node name="Value" type="Label" parent="MarginContainer/VBoxContainer/SfxRow"]
+custom_minimum_size = Vector2(60, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0.898039, 1, 1)
+theme_override_fonts/font = ExtResource("2_bold_font")
+theme_override_font_sizes/font_size = 20
+text = "100%"
+horizontal_alignment = 2
+
+[node name="Spacer3" type="Control" parent="MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 15)
+layout_mode = 2
+
+[node name="LanguageRow" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="Label" type="RichTextLabel" parent="MarginContainer/VBoxContainer/LanguageRow"]
+custom_minimum_size = Vector2(280, 0)
 layout_mode = 2
 bbcode_enabled = true
-text = "LANGUAGE  [EN]"
+text = "LANGUAGE"
 fit_content = true
 scroll_active = false
 theme_override_fonts/normal_font = ExtResource("2_bold_font")
-theme_override_font_sizes/normal_font_size = 28
+theme_override_font_sizes/normal_font_size = 24
 
-[node name="BackPrompt" type="RichTextLabel" parent="CenterContainer/VBoxContainer"]
+[node name="OptionButton" type="OptionButton" parent="MarginContainer/VBoxContainer/LanguageRow"]
+custom_minimum_size = Vector2(140, 40)
+layout_mode = 2
+theme_override_fonts/font = ExtResource("2_bold_font")
+theme_override_font_sizes/font_size = 18
+
+[node name="MusicManagerRow" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="Label" type="RichTextLabel" parent="MarginContainer/VBoxContainer/MusicManagerRow"]
+custom_minimum_size = Vector2(280, 0)
+layout_mode = 2
+bbcode_enabled = true
+text = "MUSIC MANAGER"
+fit_content = true
+scroll_active = false
+theme_override_fonts/normal_font = ExtResource("2_bold_font")
+theme_override_font_sizes/normal_font_size = 24
+
+[node name="Spacer4" type="Control" parent="MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 30)
+layout_mode = 2
+
+[node name="BackRow" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="Label" type="RichTextLabel" parent="MarginContainer/VBoxContainer/BackRow"]
+custom_minimum_size = Vector2(280, 0)
 layout_mode = 2
 bbcode_enabled = true
 text = "BACK"
 fit_content = true
 scroll_active = false
 theme_override_fonts/normal_font = ExtResource("2_bold_font")
-theme_override_font_sizes/normal_font_size = 28
+theme_override_font_sizes/normal_font_size = 24
 
-[node name="Spacer2" type="Control" parent="CenterContainer/VBoxContainer"]
-custom_minimum_size = Vector2(0, 20)
+[node name="Spacer5" type="Control" parent="MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
 
-[node name="TypedDisplay" type="Label" parent="CenterContainer/VBoxContainer"]
+[node name="TypedDisplay" type="Label" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0, 0.898039, 1, 1)
+theme_override_colors/font_color = Color(0.486, 1, 0, 1)
 theme_override_fonts/font = ExtResource("2_bold_font")
-theme_override_font_sizes/font_size = 32
+theme_override_font_sizes/font_size = 28
 text = ""
-horizontal_alignment = 1
 
-[node name="Instructions" type="Label" parent="CenterContainer/VBoxContainer"]
+[node name="Instructions" type="Label" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.333333, 0.333333, 0.4, 1)
+theme_override_colors/font_color = Color(0.4, 0.4, 0.5, 1)
 theme_override_font_sizes/font_size = 14
-text = "Type command | BACKSPACE to delete | ESC to go back"
-horizontal_alignment = 1
+text = "Arrow keys to navigate | Enter to select | +/- to adjust | ESC to go back"

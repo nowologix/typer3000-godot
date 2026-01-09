@@ -85,6 +85,7 @@ func _ready() -> void:
 
 func on_enter(params: Dictionary) -> void:
 	DebugHelper.log_info("CoopGameState entered")
+	MenuBackground.hide_background()
 
 	game_seed = params.get("seed", randi())
 	is_host = NetworkManager.is_host
@@ -180,6 +181,8 @@ func on_enter(params: Dictionary) -> void:
 	SignalBus.coop_partner_score.connect(_on_network_score)
 	SignalBus.coop_player_moved.connect(_on_network_player_moved)
 	SignalBus.coop_tower_placed.connect(_on_network_tower_placed)
+	SignalBus.coop_tower_effect.connect(_on_network_tower_effect)
+	SignalBus.network_disconnected.connect(_on_network_disconnected)
 
 	# ONLY P2 (Client) can move the player!
 	# P1 (Host) controls Portal position (stationary) and can only type
@@ -219,6 +222,8 @@ func on_exit() -> void:
 	_safe_disconnect(SignalBus.coop_game_over, _on_network_game_over)
 	_safe_disconnect(SignalBus.coop_partner_score, _on_network_score)
 	_safe_disconnect(SignalBus.coop_tower_placed, _on_network_tower_placed)
+	_safe_disconnect(SignalBus.coop_tower_effect, _on_network_tower_effect)
+	_safe_disconnect(SignalBus.network_disconnected, _on_network_disconnected)
 
 	if is_host:
 		_safe_disconnect(SignalBus.enemy_spawned, _on_host_enemy_spawned)
@@ -690,8 +695,20 @@ func send_full_state_to_client() -> void:
 				"typed": enemy.typed_progress if enemy.has_method("is_alive") else 0
 			})
 
+	# Build tower states (position and level only - targeting is calculated locally)
+	var tower_states = []
+	for tower in BuildManager.get_towers():
+		tower_states.append({
+			"x": tower.x,
+			"y": tower.y,
+			"type": tower.type,
+			"level": tower.level
+		})
+
 	var state = {
 		"enemies": enemy_states,
+		"towers": tower_states,
+		"build_points": BuildManager.get_build_points(),
 		"portal_hp": portal.current_hp if portal else 0,
 		"player_hp": player.current_hp if player else 0,
 		"player_x": player.global_position.x if player else 0,
@@ -794,6 +811,19 @@ func _on_network_state(data: Dictionary) -> void:
 	p2_contribution = int(data.p2_score)
 	total_score = int(data.score)
 
+	# Sync build points from host
+	if data.has("build_points"):
+		var host_points = int(data.build_points)
+		var local_points = BuildManager.get_build_points()
+		if host_points != local_points:
+			# Set build points to match host (use internal variable directly)
+			BuildManager.build_points = host_points
+			BuildManager.build_points_changed.emit(host_points)
+
+	# Sync tower levels (targeting is calculated locally for visuals)
+	if data.has("towers"):
+		sync_tower_levels(data.towers)
+
 	# Update reservations (JSON converts int keys to strings, convert back)
 	word_reservations.clear()
 	if data.has("reservations") and data.reservations is Dictionary:
@@ -803,6 +833,22 @@ func _on_network_state(data: Dictionary) -> void:
 	# Update NUKE status
 	nuke_p1_ready = data.nuke_p1
 	nuke_p2_ready = data.nuke_p2
+
+func sync_tower_levels(tower_states: Array) -> void:
+	# Update local tower levels based on host data
+	var local_towers = BuildManager.get_towers()
+
+	for tower_data in tower_states:
+		var tx = float(tower_data.x)
+		var ty = float(tower_data.y)
+
+		# Find matching local tower by position
+		for tower in local_towers:
+			if abs(tower.x - tx) < 5 and abs(tower.y - ty) < 5:
+				# Update level if changed
+				if tower_data.has("level"):
+					tower.level = int(tower_data.level)
+				break
 
 func _on_network_enemy_killed(data: Dictionary) -> void:
 	var enemy_id = int(data.enemy_id)
@@ -869,6 +915,33 @@ func _on_network_game_over(data: Dictionary) -> void:
 		}
 		StateManager.change_state("game_over", {"won": bool(data.won), "stats": stats, "mode": "COOP"})
 
+func _on_network_disconnected(reason: String) -> void:
+	if not game_active:
+		return
+
+	DebugHelper.log_warning("COOP: Network disconnected - %s" % reason)
+	game_active = false
+	TypingManager.disable_typing()
+
+	# Go to game over with disconnect flag (no RETRY available)
+	var typing_stats = TypingManager.get_stats()
+	var stats = {
+		"score": total_score,
+		"p1_score": p1_score,
+		"p2_score": p2_score,
+		"wave": wave_manager.current_wave if wave_manager else 0,
+		"enemies_destroyed": enemies_killed,
+		"accuracy": typing_stats.get("accuracy", 0.0),
+		"wpm": typing_stats.get("wpm", 0.0),
+		"max_combo": typing_stats.get("max_combo", 0),
+		"death_reason": "Partner disconnected",
+		"mode": "COOP",
+		"disconnected": true
+	}
+
+	SignalBus.game_over.emit(false, stats)
+	StateManager.change_state("game_over", {"won": false, "stats": stats, "mode": "COOP", "disconnected": true})
+
 func _on_network_score(partner_score: int) -> void:
 	# Legacy signal handler
 	pass
@@ -878,6 +951,31 @@ func _on_network_player_moved(pos: Vector2) -> void:
 	# Update player position on host's screen
 	if is_host and player:
 		player.global_position = pos
+
+func _on_network_tower_effect(data: Dictionary) -> void:
+	# CLIENT receives tower effect from HOST
+	if is_host:
+		return
+
+	var effect_type = str(data.get("type", ""))
+
+	match effect_type:
+		"gun":
+			var pos = Vector2(float(data.x), float(data.y))
+			EffectsManager.spawn_hit_effect(pos, self)
+			SoundManager.play_tower_shoot()
+		"tesla":
+			var positions = data.get("positions", [])
+			for pos_data in positions:
+				var pos = Vector2(float(pos_data.x), float(pos_data.y))
+				spawn_electric_hit_effect(pos)
+			if positions.size() > 0:
+				SoundManager.play_tesla_zap()
+		"freeze":
+			var positions = data.get("positions", [])
+			for pos_data in positions:
+				var pos = Vector2(float(pos_data.x), float(pos_data.y))
+				spawn_blue_hit_effect(pos)
 
 func _on_network_tower_placed(data: Dictionary) -> void:
 	# HOST receives tower placement from CLIENT (P2)
@@ -916,20 +1014,44 @@ func process_tower_results(results: Array) -> void:
 			"gun_fire":
 				var target = data.get("target")
 				if target and is_instance_valid(target):
-					EffectsManager.spawn_hit_effect(target.global_position, self)
+					var pos = target.global_position
+					EffectsManager.spawn_hit_effect(pos, self)
 					SoundManager.play_tower_shoot()
+					# Send to client
+					NetworkManager.send_message("coop_tower_effect", {
+						"type": "gun",
+						"x": pos.x,
+						"y": pos.y
+					})
 			"tesla_push":
 				var affected_enemies = data.get("enemies", [])
+				var positions = []
 				for enemy in affected_enemies:
 					if is_instance_valid(enemy):
-						spawn_electric_hit_effect(enemy.global_position)
+						var pos = enemy.global_position
+						spawn_electric_hit_effect(pos)
+						positions.append({"x": pos.x, "y": pos.y})
 				if affected_enemies.size() > 0:
 					SoundManager.play_tesla_zap()
+					# Send to client
+					NetworkManager.send_message("coop_tower_effect", {
+						"type": "tesla",
+						"positions": positions
+					})
 			"freeze_slow":
 				var affected_enemies = data.get("enemies", [])
+				var positions = []
 				for enemy in affected_enemies:
 					if is_instance_valid(enemy):
-						spawn_blue_hit_effect(enemy.global_position)
+						var pos = enemy.global_position
+						spawn_blue_hit_effect(pos)
+						positions.append({"x": pos.x, "y": pos.y})
+				if positions.size() > 0:
+					# Send to client
+					NetworkManager.send_message("coop_tower_effect", {
+						"type": "freeze",
+						"positions": positions
+					})
 
 func spawn_blue_hit_effect(pos: Vector2) -> void:
 	if BlueHitEffect == null:

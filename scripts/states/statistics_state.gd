@@ -2,9 +2,9 @@
 ## Modern Statistics Dashboard with card-based layout
 extends Node2D
 
-enum Tab { SPEED, ACCURACY, CONSISTENCY, ANALYSIS, GAME, ACHIEVEMENTS }
+enum Tab { SPEED, ACCURACY, CONSISTENCY, ANALYSIS, GAME, ACHIEVEMENTS, PROGRESSION }
 
-const TAB_NAMES := ["SPEED", "ACCURACY", "CONSISTENCY", "ANALYSIS", "GAME", "ACHIEVEMENTS"]
+const TAB_NAMES := ["SPEED", "ACCURACY", "CONSISTENCY", "ANALYSIS", "GAME", "ACHIEVEMENTS", "PROGRESSION"]
 
 var current_tab: int = Tab.SPEED
 var scroll_offset: float = 0.0
@@ -14,7 +14,7 @@ var target_scroll: float = 0.0
 var MARGIN: float = 40.0
 var CONTENT_START_Y: float = 140.0
 
-const BG_DARK := Color(0.08, 0.09, 0.12)
+const BG_DARK := Color(0.08, 0.09, 0.12, 0.6)
 const BG_CARD := Color(0.12, 0.13, 0.18)
 const BG_CARD_HOVER := Color(0.15, 0.16, 0.22)
 const ACCENT_PRIMARY := Color(0.4, 0.8, 1.0)
@@ -32,6 +32,7 @@ func _ready() -> void:
 
 func on_enter(_params: Dictionary) -> void:
 	DebugHelper.log_info("StatisticsState entered")
+	MenuBackground.show_background()
 	current_tab = Tab.SPEED
 	scroll_offset = 0.0
 	target_scroll = 0.0
@@ -46,8 +47,47 @@ func _process(delta: float) -> void:
 		queue_redraw()
 
 func _input(event: InputEvent) -> void:
+	# Mouse input handling
+	if event is InputEventMouseButton and event.pressed:
+		if event.button_index == MOUSE_BUTTON_XBUTTON1:
+			SoundManager.play_menu_back()
+			StateManager.change_state("menu")
+			return
+		
+		if event.button_index == MOUSE_BUTTON_LEFT:
+			if is_back_button_area(event.position):
+				SoundManager.play_menu_back()
+				StateManager.change_state("menu")
+				return
+		
+		# Mouse wheel scrolling
+		if event.button_index == MOUSE_BUTTON_WHEEL_UP:
+			target_scroll = maxf(0, target_scroll - 60)
+			return
+		if event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			target_scroll = minf(max_scroll, target_scroll + 60)
+			return
+		
+		# Tab click detection
+		if event.button_index == MOUSE_BUTTON_LEFT:
+			var click_pos = event.position
+			var tab_y = 70
+			var tab_height = 50
+			if click_pos.y >= tab_y and click_pos.y <= tab_y + tab_height:
+				var width = GameConfig.SCREEN_WIDTH
+				var content_width = width - (MARGIN * 2)
+				var tab_width = content_width / TAB_NAMES.size()
+				var clicked_tab = int((click_pos.x - MARGIN) / tab_width)
+				if clicked_tab >= 0 and clicked_tab < TAB_NAMES.size():
+					current_tab = clicked_tab
+					scroll_offset = 0.0
+					target_scroll = 0.0
+					queue_redraw()
+					SoundManager.play_menu_select()
+					return
+
 	if event is InputEventKey and event.pressed and not event.is_echo():
-		if event.keycode >= KEY_1 and event.keycode <= KEY_6:
+		if event.keycode >= KEY_1 and event.keycode <= KEY_7:
 			current_tab = event.keycode - KEY_1
 			scroll_offset = 0.0
 			target_scroll = 0.0
@@ -149,6 +189,7 @@ func draw_content_area() -> void:
 		Tab.ANALYSIS: draw_analysis_tab()
 		Tab.GAME: draw_game_tab()
 		Tab.ACHIEVEMENTS: draw_achievements_tab()
+		Tab.PROGRESSION: draw_progression_tab()
 
 func draw_footer() -> void:
 	var font = ThemeDB.fallback_font
@@ -157,8 +198,13 @@ func draw_footer() -> void:
 	var footer_y = height - 45
 	draw_rect(Rect2(0, footer_y, width, 45), Color(0.06, 0.07, 0.1))
 	draw_line(Vector2(0, footer_y), Vector2(width, footer_y), BORDER_COLOR, 1)
-	var hints = "ESC Back  |  1-6 Tabs  |  A/D Switch  |  W/S Scroll"
-	draw_string(font, Vector2(width / 2 - 160, footer_y + 28), hints, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, TEXT_MUTED)
+	# Back button area
+	draw_string(font, Vector2(MARGIN, footer_y + 28), "[< BACK]", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, ACCENT_PRIMARY)
+	var hints = "1-7 Tabs  |  A/D Switch  |  W/S Scroll"
+	draw_string(font, Vector2(width / 2 - 100, footer_y + 28), hints, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, TEXT_MUTED)
+
+func is_back_button_area(pos: Vector2) -> bool:
+	return pos.x < 120 and pos.y > GameConfig.SCREEN_HEIGHT - 60
 
 func draw_card(rect: Rect2, _highlight: bool = false) -> void:
 	draw_rect(rect, BG_CARD)
@@ -575,6 +621,136 @@ func draw_achievements_tab() -> void:
 					draw_string(font, Vector2(width - MARGIN - 75, row_y + 12), "DONE", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, tier_color)
 				row_y += 50
 		y += card_h + 12
+	max_scroll = maxf(0, y - GameConfig.SCREEN_HEIGHT + 80)
+
+# TAB 7: PROGRESSION
+func draw_progression_tab() -> void:
+	var font = ThemeDB.fallback_font
+	var width = GameConfig.SCREEN_WIDTH
+	var y = CONTENT_START_Y + 10
+
+	var currency: int = ProgressionManager.get_currency() if ProgressionManager else 0
+	var unlocks: Dictionary = ProgressionManager.get_unlock_progress() if ProgressionManager else {"unlocked": 0, "total": 0}
+	var completion: float = (float(unlocks.unlocked) / float(unlocks.total) * 100.0) if unlocks.total > 0 else 0.0
+
+	# Overview cards
+	var card_width = (width - MARGIN * 2 - 30) / 3
+	var card_height = 95.0
+
+	draw_kpi_card(MARGIN, y, card_width, card_height, "COINS", str(currency), "Available to spend", ACCENT_SECONDARY)
+	draw_kpi_card(MARGIN + card_width + 15, y, card_width, card_height, "UNLOCKED", "%d / %d" % [unlocks.unlocked, unlocks.total], "%.0f%% complete" % completion, ACCENT_PRIMARY)
+
+	# Count active abilities
+	var active_count := 0
+	if ProgressionManager:
+		for id in ProgressionManager.UNLOCKABLES:
+			if ProgressionManager.is_bonus_active(id) or ProgressionManager.is_evolution_active(id):
+				active_count += 1
+	draw_kpi_card(MARGIN + (card_width + 15) * 2, y, card_width, card_height, "ACTIVE", str(active_count), "Abilities enabled", ACCENT_SUCCESS)
+
+	y += card_height + 25
+
+	# Completion bar
+	y = draw_section_title("UNLOCK PROGRESS", y)
+	var adjusted_y = y - scroll_offset
+	draw_card(Rect2(MARGIN, adjusted_y, width - MARGIN * 2, 70))
+	draw_progress_bar(MARGIN + 20, adjusted_y + 32, width - MARGIN * 2 - 40, completion / 100.0, ACCENT_PRIMARY)
+	draw_string(font, Vector2(MARGIN + 20, adjusted_y + 58), "0%", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, TEXT_MUTED)
+	draw_string(font, Vector2(width - MARGIN - 40, adjusted_y + 58), "100%", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, TEXT_MUTED)
+	y += 90
+
+	# Start Bonuses section
+	y = draw_section_title("START BONUSES", y)
+	adjusted_y = y - scroll_offset
+
+	var bonus_ids := ["portal_hp_1", "portal_hp_2", "portal_hp_3", "auto_shield_20", "auto_shield_15", "auto_shield_10", "td_resources_1", "td_resources_2", "td_resources_3"]
+	var card_h = bonus_ids.size() * 35 + 20
+	draw_card(Rect2(MARGIN, adjusted_y, width - MARGIN * 2, card_h))
+
+	var row_y = adjusted_y + 18
+	for id in bonus_ids:
+		if not ProgressionManager:
+			break
+		var data: Dictionary = ProgressionManager.UNLOCKABLES.get(id, {})
+		if data.is_empty():
+			continue
+
+		var is_unlocked := ProgressionManager.is_unlocked(id)
+		var is_active := ProgressionManager.is_bonus_active(id)
+
+		# Status indicator
+		var status_color := ACCENT_SUCCESS if is_active else (ACCENT_PRIMARY if is_unlocked else TEXT_MUTED)
+		draw_rect(Rect2(MARGIN + 15, row_y - 2, 8, 8), status_color)
+
+		# Name
+		var name_text := ProgressionManager.get_localized_name(data)
+		draw_string(font, Vector2(MARGIN + 35, row_y + 6), name_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, TEXT_PRIMARY if is_unlocked else TEXT_SECONDARY)
+
+		# Description
+		var desc_text := ProgressionManager.get_localized_description(data)
+		draw_string(font, Vector2(MARGIN + 180, row_y + 6), desc_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, TEXT_MUTED)
+
+		# Status text
+		var status_text := "ACTIVE" if is_active else ("OWNED" if is_unlocked else "LOCKED")
+		draw_string(font, Vector2(width - MARGIN - 80, row_y + 6), status_text, HORIZONTAL_ALIGNMENT_RIGHT, 60, 12, status_color)
+
+		row_y += 35
+	y += card_h + 15
+
+	# Evolutions section
+	y = draw_section_title("EVOLUTIONS", y)
+	adjusted_y = y - scroll_offset
+
+	var evolution_ids := ["burst_mode", "vampire"]
+	card_h = evolution_ids.size() * 45 + 20
+	draw_card(Rect2(MARGIN, adjusted_y, width - MARGIN * 2, card_h))
+
+	row_y = adjusted_y + 18
+	for id in evolution_ids:
+		if not ProgressionManager:
+			break
+		var data: Dictionary = ProgressionManager.UNLOCKABLES.get(id, {})
+		if data.is_empty():
+			continue
+
+		var is_unlocked := ProgressionManager.is_unlocked(id)
+		var is_active := ProgressionManager.is_evolution_active(id)
+
+		# Status indicator (larger for evolutions)
+		var status_color := ACCENT_SUCCESS if is_active else (ACCENT_PRIMARY if is_unlocked else TEXT_MUTED)
+		draw_rect(Rect2(MARGIN + 15, row_y - 4, 12, 12), status_color)
+
+		# Name
+		var name_text := ProgressionManager.get_localized_name(data)
+		draw_string(font, Vector2(MARGIN + 40, row_y + 8), name_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, TEXT_PRIMARY if is_unlocked else TEXT_SECONDARY)
+
+		# Description
+		var desc_text := ProgressionManager.get_localized_description(data)
+		draw_string(font, Vector2(MARGIN + 40, row_y + 28), desc_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, TEXT_MUTED)
+
+		# Status and cost
+		var status_text := "ACTIVE" if is_active else ("OWNED" if is_unlocked else "%d COINS" % data.cost)
+		draw_string(font, Vector2(width - MARGIN - 100, row_y + 12), status_text, HORIZONTAL_ALIGNMENT_RIGHT, 80, 14, status_color)
+
+		row_y += 45
+	y += card_h + 15
+
+	# Currency earned info
+	y = draw_section_title("CURRENCY FORMULA", y)
+	adjusted_y = y - scroll_offset
+	draw_card(Rect2(MARGIN, adjusted_y, width - MARGIN * 2, 100))
+
+	draw_string(font, Vector2(MARGIN + 20, adjusted_y + 25), "Score Coins", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, TEXT_SECONDARY)
+	draw_string(font, Vector2(MARGIN + 200, adjusted_y + 25), "1 coin per 100 score", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, ACCENT_PRIMARY)
+
+	draw_string(font, Vector2(MARGIN + 20, adjusted_y + 50), "Kill Coins", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, TEXT_SECONDARY)
+	draw_string(font, Vector2(MARGIN + 200, adjusted_y + 50), "1 coin per kill", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, ACCENT_DANGER)
+
+	draw_string(font, Vector2(MARGIN + 20, adjusted_y + 75), "Wave Coins", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, TEXT_SECONDARY)
+	draw_string(font, Vector2(MARGIN + 200, adjusted_y + 75), "10 + wave * 5 per wave", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, ACCENT_SUCCESS)
+
+	y += 120
+
 	max_scroll = maxf(0, y - GameConfig.SCREEN_HEIGHT + 80)
 
 # MODERN GRAPH

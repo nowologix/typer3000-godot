@@ -37,6 +37,7 @@ func on_enter(_params: Dictionary) -> void:
 	update_display()
 	update_ui_labels()
 	get_tree().paused = true
+	SoundManager.play_pause()
 
 func on_exit() -> void:
 	DebugHelper.log_info("PauseState exiting")
@@ -45,6 +46,12 @@ func on_exit() -> void:
 		SignalBus.language_changed.disconnect(_on_language_changed)
 
 func _input(event: InputEvent) -> void:
+	# Mouse back button - resumes game
+	if event is InputEventMouseButton and event.pressed:
+		if event.button_index == MOUSE_BUTTON_XBUTTON1:
+			resume_game()
+			return
+
 	if event is InputEventKey and event.pressed and not event.is_echo():
 		var char_code = event.unicode
 
@@ -60,8 +67,10 @@ func _input(event: InputEvent) -> void:
 				update_display()
 			return
 
-		# A-Z
-		if (char_code >= 65 and char_code <= 90) or (char_code >= 97 and char_code <= 122):
+		# A-Z and German umlauts (Ä=196, Ö=214, Ü=220, ä=228, ö=246, ü=252)
+		var is_letter = (char_code >= 65 and char_code <= 90) or (char_code >= 97 and char_code <= 122)
+		var is_umlaut = char_code in [196, 214, 220, 228, 246, 252]
+		if is_letter or is_umlaut:
 			typed_buffer += char(char_code).to_upper()
 			update_display()
 			check_commands()
@@ -108,6 +117,7 @@ func _on_language_changed() -> void:
 
 func resume_game() -> void:
 	DebugHelper.log_info("Resuming game")
+	SoundManager.play_unpause()
 	get_tree().paused = false
 	StateManager.change_state("game")
 

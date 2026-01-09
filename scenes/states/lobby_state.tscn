@@ -15,7 +15,7 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-color = Color(0.05, 0.05, 0.1, 1)
+color = Color(0.05, 0.05, 0.1, 0.6)
 
 [node name="CenterContainer" type="CenterContainer" parent="."]
 layout_mode = 1
@@ -126,14 +126,6 @@ horizontal_alignment = 1
 [node name="SpacerMiddle" type="Control" parent="CenterContainer/VBoxContainer"]
 custom_minimum_size = Vector2(0, 30)
 layout_mode = 2
-
-[node name="SettingsPrompt" type="Label" parent="CenterContainer/VBoxContainer"]
-layout_mode = 2
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_fonts/font = ExtResource("2_bold_font")
-theme_override_font_sizes/font_size = 32
-text = "SETTINGS"
-horizontal_alignment = 1
 
 [node name="BackPrompt" type="Label" parent="CenterContainer/VBoxContainer"]
 layout_mode = 2

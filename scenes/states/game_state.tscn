@@ -31,7 +31,6 @@ shader_parameter/vignette_color = Color(0, 0, 0, 1)
 shader_parameter/vignette_softness = 0.45
 
 [node name="GameState" type="Node2D"]
-process_mode = 3
 script = ExtResource("1_game")
 
 [node name="Background" type="ColorRect" parent="."]
@@ -40,6 +39,7 @@ offset_bottom = 720.0
 color = Color(0.05, 0.05, 0.1, 1)
 
 [node name="GameLayer" type="Node2D" parent="."]
+process_mode = 1
 
 [node name="EnemyContainer" type="Node2D" parent="GameLayer"]
 
@@ -50,6 +50,7 @@ position = Vector2(640, 360)
 position = Vector2(640, 360)
 
 [node name="WaveManager" type="Node" parent="."]
+process_mode = 1
 script = ExtResource("5_wave")
 
 [node name="VignetteLayer" type="CanvasLayer" parent="."]
@@ -84,7 +85,7 @@ layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-process_mode = 3
+process_mode = 2
 
 [node name="Overlay" type="ColorRect" parent="PauseLayer/PausePanel"]
 layout_mode = 1

@@ -14,96 +14,62 @@ const COLOR_UNAFFORDABLE := Color("#FF4444")
 const COLOR_POSITION := Color("#00E5FF")
 const COLOR_POSITION_OCCUPIED := Color("#444466")
 const COLOR_UPGRADE := Color("#FFD700")  # Gold for upgrades
+const COLOR_SELL := Color("#00BFFF")  # Light blue for sell
 const COLOR_MAX_LEVEL := Color("#FF44FF")  # Magenta for max level towers
 
-# GUN turret animated sprite config
-const GUN_SPRITE_PATH := "res://assets/sprites/towers/gun/"
-const GUN_FRAME_COUNT := 66
-const GUN_FPS := 20.0
-const GUN_SPRITE_SCALE := 0.36  # Scale 256px to ~92px diameter
+# Tower sprite scale (adjust based on actual image size)
+const TOWER_SPRITE_SCALE := 0.25
 
-# TESLA turret animated sprite config
-const TESLA_SPRITE_PATH := "res://assets/sprites/towers/tesla/"
-const TESLA_FRAME_COUNT := 77
-const TESLA_FPS := 20.0
-const TESLA_SPRITE_SCALE := 0.36  # Same size as GUN
+# Tower upgrade textures (Level 1-5 for each type)
+const GUN_TEXTURES := [
+	preload("res://assets/sprites/towers/turret_gun_01.png"),
+	preload("res://assets/sprites/towers/turret_gun_02.png"),
+	preload("res://assets/sprites/towers/turret_gun_03.png"),
+	preload("res://assets/sprites/towers/turret_gun_04.png"),
+	preload("res://assets/sprites/towers/turret_gun_05.png"),
+]
 
-# FREEZE turret animated sprite config
-const FREEZE_SPRITE_PATH := "res://assets/sprites/towers/freeze/"
-const FREEZE_FRAME_COUNT := 111
-const FREEZE_FPS := 20.0
-const FREEZE_SPRITE_SCALE := 0.36  # Same size as others
+const TESLA_TEXTURES := [
+	preload("res://assets/sprites/towers/turret_tesla_01.png"),
+	preload("res://assets/sprites/towers/turret_tesla_02.png"),
+	preload("res://assets/sprites/towers/turret_tesla_03.png"),
+	preload("res://assets/sprites/towers/turret_tesla_04.png"),
+	preload("res://assets/sprites/towers/turret_tesla_05.png"),
+]
+
+const FREEZE_TEXTURES := [
+	preload("res://assets/sprites/towers/turret_freeze_01.png"),
+	preload("res://assets/sprites/towers/turret_freeze_02.png"),
+	preload("res://assets/sprites/towers/turret_freeze_03.png"),
+	preload("res://assets/sprites/towers/turret_freeze_04.png"),
+	preload("res://assets/sprites/towers/turret_freeze_05.png"),
+]
 
 var visible_in_build_mode: bool = false
 var is_in_upgrade_mode: bool = false
-var tower_visuals: Dictionary = {}  # tower_id -> AnimatedSprite2D
-var gun_sprite_frames: SpriteFrames = null
-var tesla_sprite_frames: SpriteFrames = null
-var freeze_sprite_frames: SpriteFrames = null
+var is_in_sell_mode: bool = false
+var tower_visuals: Dictionary = {}  # tower_id -> Sprite2D
+var shadow_visuals: Dictionary = {}  # tower_id -> Sprite2D (shadows)
+
+# Shadow settings
+const SHADOW_OFFSET := Vector2(4, 4)
+const SHADOW_SCALE_MULT := 1.1
+const SHADOW_COLOR := Color(0, 0, 0, 0.6)
 
 func _ready() -> void:
 	# Connect to BuildManager signals
 	BuildManager.build_mode_entered.connect(_on_build_mode_entered)
 	BuildManager.build_mode_exited.connect(_on_build_mode_exited)
 	BuildManager.tower_placed.connect(_on_tower_placed)
+	BuildManager.tower_sold.connect(_on_tower_sold)
+	BuildManager.tower_upgraded.connect(_on_tower_upgraded)
 	BuildManager.towers_reset.connect(clear_tower_visuals)
 	BuildManager.upgrade_mode_entered.connect(_on_upgrade_mode_entered)
 	BuildManager.upgrade_mode_exited.connect(_on_upgrade_mode_exited)
+	BuildManager.sell_mode_entered.connect(_on_sell_mode_entered)
+	BuildManager.sell_mode_exited.connect(_on_sell_mode_exited)
 
-	# Preload turret sprite frames
-	_load_gun_sprite_frames()
-	_load_tesla_sprite_frames()
-	_load_freeze_sprite_frames()
-
-func _load_gun_sprite_frames() -> void:
-	gun_sprite_frames = SpriteFrames.new()
-	gun_sprite_frames.add_animation("idle")
-	gun_sprite_frames.set_animation_speed("idle", GUN_FPS)
-	gun_sprite_frames.set_animation_loop("idle", true)
-
-	for i in range(GUN_FRAME_COUNT):
-		var frame_path := GUN_SPRITE_PATH + "typer3000-gun-turret-01_%02d.png" % i
-		var texture := _load_png_directly(frame_path)
-		if texture:
-			gun_sprite_frames.add_frame("idle", texture)
-
-	DebugHelper.log_info("BuildHUD: Loaded %d GUN turret frames" % gun_sprite_frames.get_frame_count("idle"))
-
-func _load_tesla_sprite_frames() -> void:
-	tesla_sprite_frames = SpriteFrames.new()
-	tesla_sprite_frames.add_animation("idle")
-	tesla_sprite_frames.set_animation_speed("idle", TESLA_FPS)
-	tesla_sprite_frames.set_animation_loop("idle", true)
-
-	for i in range(TESLA_FRAME_COUNT):
-		var frame_path := TESLA_SPRITE_PATH + "typer3000-tesla-turret-01_%02d.png" % i
-		var texture := _load_png_directly(frame_path)
-		if texture:
-			tesla_sprite_frames.add_frame("idle", texture)
-
-	DebugHelper.log_info("BuildHUD: Loaded %d TESLA turret frames" % tesla_sprite_frames.get_frame_count("idle"))
-
-func _load_freeze_sprite_frames() -> void:
-	freeze_sprite_frames = SpriteFrames.new()
-	freeze_sprite_frames.add_animation("idle")
-	freeze_sprite_frames.set_animation_speed("idle", FREEZE_FPS)
-	freeze_sprite_frames.set_animation_loop("idle", true)
-
-	for i in range(FREEZE_FRAME_COUNT):
-		var frame_path := FREEZE_SPRITE_PATH + "typer3000-freeze-turret-01_%03d.png" % i
-		var texture := _load_png_directly(frame_path)
-		if texture:
-			freeze_sprite_frames.add_frame("idle", texture)
-
-	DebugHelper.log_info("BuildHUD: Loaded %d FREEZE turret frames" % freeze_sprite_frames.get_frame_count("idle"))
-
-func _load_png_directly(res_path: String) -> ImageTexture:
-	var abs_path := ProjectSettings.globalize_path(res_path)
-	var image := Image.new()
-	var err := image.load(abs_path)
-	if err != OK:
-		return null
-	return ImageTexture.create_from_image(image)
+	DebugHelper.log_info("BuildHUD: Tower upgrade sprites loaded (5 levels per type)")
 
 func _on_tower_placed(tower: Dictionary) -> void:
 	# Create visual node for new tower
@@ -115,12 +81,61 @@ func _on_build_mode_entered() -> void:
 func _on_build_mode_exited() -> void:
 	visible_in_build_mode = false
 	is_in_upgrade_mode = false
+	is_in_sell_mode = false
 
 func _on_upgrade_mode_entered() -> void:
 	is_in_upgrade_mode = true
 
 func _on_upgrade_mode_exited() -> void:
 	is_in_upgrade_mode = false
+
+func _on_sell_mode_entered() -> void:
+	is_in_sell_mode = true
+
+func _on_sell_mode_exited() -> void:
+	is_in_sell_mode = false
+
+func _on_tower_sold(tower: Dictionary, _refund: int) -> void:
+	# Remove visual for sold tower
+	var tower_id := "%d_%d" % [int(tower.x), int(tower.y)]
+	if tower_visuals.has(tower_id):
+		var sprite = tower_visuals[tower_id]
+		if is_instance_valid(sprite):
+			sprite.queue_free()
+		tower_visuals.erase(tower_id)
+	if shadow_visuals.has(tower_id):
+		var shadow = shadow_visuals[tower_id]
+		if is_instance_valid(shadow):
+			shadow.queue_free()
+		shadow_visuals.erase(tower_id)
+	DebugHelper.log_info("BuildHUD: Removed sold tower visual at (%d, %d)" % [int(tower.x), int(tower.y)])
+
+func _on_tower_upgraded(tower: Dictionary) -> void:
+	# Update sprite and shadow texture for upgraded tower
+	var tower_id := "%d_%d" % [int(tower.x), int(tower.y)]
+	var level: int = tower.level
+	var level_index := clampi(level - 1, 0, 4)  # 0-4 for levels 1-5
+	var new_texture: Texture2D = null
+
+	match tower.type:
+		BuildManager.TowerType.GUN:
+			new_texture = GUN_TEXTURES[level_index]
+		BuildManager.TowerType.TESLA:
+			new_texture = TESLA_TEXTURES[level_index]
+		BuildManager.TowerType.FREEZE:
+			new_texture = FREEZE_TEXTURES[level_index]
+
+	if new_texture and tower_visuals.has(tower_id):
+		var sprite: Sprite2D = tower_visuals[tower_id]
+		if is_instance_valid(sprite):
+			sprite.texture = new_texture
+
+	if new_texture and shadow_visuals.has(tower_id):
+		var shadow: Sprite2D = shadow_visuals[tower_id]
+		if is_instance_valid(shadow):
+			shadow.texture = new_texture
+
+	DebugHelper.log_info("BuildHUD: Updated tower sprite to level %d" % level)
 
 func clear_tower_visuals() -> void:
 	# Remove all animated tower sprites (called on game reset)
@@ -129,63 +144,69 @@ func clear_tower_visuals() -> void:
 		if is_instance_valid(sprite):
 			sprite.queue_free()
 	tower_visuals.clear()
+	for tower_id in shadow_visuals:
+		var shadow = shadow_visuals[tower_id]
+		if is_instance_valid(shadow):
+			shadow.queue_free()
+	shadow_visuals.clear()
 	DebugHelper.log_debug("BuildHUD: Cleared tower visuals")
 
 func _create_tower_visual(tower: Dictionary) -> void:
 	if not tower.has("type"):
 		return
 
-	var sprite: AnimatedSprite2D = null
+	var sprite := Sprite2D.new()
+	var shadow := Sprite2D.new()
 	var tower_name: String = ""
+	var level: int = tower.get("level", 1)
+	var level_index := clampi(level - 1, 0, 4)  # 0-4 for levels 1-5
 
 	match tower.type:
 		BuildManager.TowerType.GUN:
-			if gun_sprite_frames == null or gun_sprite_frames.get_frame_count("idle") == 0:
-				DebugHelper.log_warning("BuildHUD: GUN sprite frames not loaded")
-				return
-			sprite = AnimatedSprite2D.new()
-			sprite.sprite_frames = gun_sprite_frames
-			sprite.scale = Vector2(GUN_SPRITE_SCALE, GUN_SPRITE_SCALE)
+			sprite.texture = GUN_TEXTURES[level_index]
+			shadow.texture = GUN_TEXTURES[level_index]
 			tower_name = "GUN"
 
 		BuildManager.TowerType.TESLA:
-			if tesla_sprite_frames == null or tesla_sprite_frames.get_frame_count("idle") == 0:
-				DebugHelper.log_warning("BuildHUD: TESLA sprite frames not loaded")
-				return
-			sprite = AnimatedSprite2D.new()
-			sprite.sprite_frames = tesla_sprite_frames
-			sprite.scale = Vector2(TESLA_SPRITE_SCALE, TESLA_SPRITE_SCALE)
+			sprite.texture = TESLA_TEXTURES[level_index]
+			shadow.texture = TESLA_TEXTURES[level_index]
 			tower_name = "TESLA"
 
 		BuildManager.TowerType.FREEZE:
-			if freeze_sprite_frames == null or freeze_sprite_frames.get_frame_count("idle") == 0:
-				DebugHelper.log_warning("BuildHUD: FREEZE sprite frames not loaded")
-				return
-			sprite = AnimatedSprite2D.new()
-			sprite.sprite_frames = freeze_sprite_frames
-			sprite.scale = Vector2(FREEZE_SPRITE_SCALE, FREEZE_SPRITE_SCALE)
+			sprite.texture = FREEZE_TEXTURES[level_index]
+			shadow.texture = FREEZE_TEXTURES[level_index]
 			tower_name = "FREEZE"
 
 		_:
-			return  # No animated sprite for this tower type
+			sprite.queue_free()
+			shadow.queue_free()
+			return  # Unknown tower type
 
-	sprite.animation = "idle"
+	# Shadow setup
+	shadow.position = Vector2(tower.x, tower.y) + SHADOW_OFFSET
+	shadow.scale = Vector2(TOWER_SPRITE_SCALE * SHADOW_SCALE_MULT, TOWER_SPRITE_SCALE * SHADOW_SCALE_MULT)
+	shadow.modulate = SHADOW_COLOR
+	shadow.z_index = -11  # Below tower sprite
+	add_child(shadow)
+
+	# Sprite setup
 	sprite.position = Vector2(tower.x, tower.y)
-	sprite.z_index = 5  # Above background, below enemies
-
+	sprite.scale = Vector2(TOWER_SPRITE_SCALE, TOWER_SPRITE_SCALE)
+	sprite.z_index = -10  # Below enemies and UI
 	add_child(sprite)
-	sprite.play("idle")
 
 	# Generate unique ID for this tower
 	var tower_id := "%d_%d" % [int(tower.x), int(tower.y)]
 	tower_visuals[tower_id] = sprite
+	shadow_visuals[tower_id] = shadow
 
-	DebugHelper.log_info("BuildHUD: Created %s turret visual at (%d, %d)" % [tower_name, int(tower.x), int(tower.y)])
+	DebugHelper.log_info("BuildHUD: Created %s turret visual at (%d, %d) level %d" % [tower_name, int(tower.x), int(tower.y), level])
 
 func _update_tower_visuals() -> void:
 	var towers := BuildManager.get_towers()
 
 	for tower in towers:
+		# Only rotate GUN towers (they aim at enemies)
 		if tower.type != BuildManager.TowerType.GUN:
 			continue
 
@@ -193,21 +214,62 @@ func _update_tower_visuals() -> void:
 		if not tower_visuals.has(tower_id):
 			continue
 
-		var sprite: AnimatedSprite2D = tower_visuals[tower_id]
+		var sprite: Sprite2D = tower_visuals[tower_id]
 		if not is_instance_valid(sprite):
 			tower_visuals.erase(tower_id)
 			continue
 
-		# Rotate sprite to point at target
+		# Rotate sprite to point at target (calculated locally for visuals)
+		var tower_pos := Vector2(tower.x, tower.y)
+		var target_pos: Vector2 = Vector2.ZERO
+		var has_target := false
+
+		# Check for local target first (HOST has real target)
 		if tower.has("target") and tower.target != null and is_instance_valid(tower.target):
-			var tower_pos := Vector2(tower.x, tower.y)
-			var target_pos: Vector2 = tower.target.global_position
+			target_pos = tower.target.global_position
+			has_target = true
+		else:
+			# Calculate nearest enemy locally (CLIENT visual targeting)
+			var nearest = find_nearest_enemy_in_range(tower_pos, tower.stats.effect_radius if tower.has("stats") else 150.0)
+			if nearest != null:
+				target_pos = nearest.global_position
+				has_target = true
+
+		var target_rotation: float
+		if has_target:
 			var direction := target_pos - tower_pos
-			# Sprite arrow points UP, so we subtract PI/2 to adjust
-			sprite.rotation = direction.angle() + PI / 2
+			# Sprite points UP (0°), so add PI/2 to adjust
+			target_rotation = direction.angle() + PI / 2
 		else:
 			# No target - slowly rotate back to default (pointing up)
-			sprite.rotation = lerp_angle(sprite.rotation, 0.0, 0.1)
+			target_rotation = lerp_angle(sprite.rotation, 0.0, 0.1)
+
+		sprite.rotation = target_rotation
+
+		# Also rotate shadow
+		if shadow_visuals.has(tower_id):
+			var shadow: Sprite2D = shadow_visuals[tower_id]
+			if is_instance_valid(shadow):
+				shadow.rotation = target_rotation
+
+func find_nearest_enemy_in_range(pos: Vector2, radius: float) -> Node:
+	# Find nearest enemy within range (for local visual targeting)
+	var enemies = get_tree().get_nodes_in_group("enemies")
+	var nearest: Node = null
+	var nearest_dist: float = radius
+
+	for enemy in enemies:
+		if not is_instance_valid(enemy):
+			continue
+		if enemy.has_method("is_alive") and not enemy.is_alive():
+			continue
+
+		var dist = pos.distance_to(enemy.global_position)
+		if dist < nearest_dist:
+			nearest_dist = dist
+			nearest = enemy
+
+	return nearest
 
 func _process(_delta: float) -> void:
 	# Update tower visual rotations
@@ -224,15 +286,19 @@ func _draw() -> void:
 		draw_build_command_hint()
 		return
 
-	# Draw semi-transparent overlay
-	draw_rect(Rect2(0, 0, 1280, 720), COLOR_BG)
-
 	var phase := BuildManager.get_build_phase()
+
+	# Draw semi-transparent overlay (except when placing tower - need clear view)
+	if phase != BuildManager.BuildPhase.SELECTING_POSITION:
+		var vp_size := get_viewport().get_visible_rect().size
+		draw_rect(Rect2(0, 0, vp_size.x, vp_size.y), COLOR_BG)
 
 	if phase == BuildManager.BuildPhase.SELECTING_TOWER:
 		draw_tower_selection()
 	elif phase == BuildManager.BuildPhase.SELECTING_UPGRADE:
 		draw_upgrade_selection()
+	elif phase == BuildManager.BuildPhase.SELECTING_SELL:
+		draw_sell_selection()
 	else:
 		draw_position_selection()
 
@@ -244,8 +310,9 @@ func draw_build_command_hint() -> void:
 	var font := ThemeDB.fallback_font
 	var build_word := "BUILD"
 	var typed_buffer := TypingManager.build_buffer
-	var x := 1100
-	var y := 700
+	var vp := get_viewport().get_visible_rect().size
+	var x := vp.x - 180
+	var y := vp.y - 20
 
 	# Draw background for better visibility
 	draw_rect(Rect2(x - 10, y - 25, 120, 35), Color(0, 0, 0, 0.5))
@@ -265,7 +332,7 @@ func draw_build_command_hint() -> void:
 
 func draw_tower_selection() -> void:
 	var font := ThemeDB.fallback_font
-	var center_x := 640
+	var center_x := get_viewport().get_visible_rect().size.x / 2.0
 	var buffer := BuildManager.get_build_buffer()
 
 	# Title
@@ -346,6 +413,32 @@ func draw_tower_selection() -> void:
 	else:
 		draw_string(font, Vector2(center_x + 80, y), "no towers", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, COLOR_DIM)
 
+	# Draw SELL option
+	y += 40
+	var sell_word := "SELL"
+	var all_towers := BuildManager.get_towers()
+	var can_sell := not all_towers.is_empty()
+	char_x = center_x - 120
+
+	for i in range(sell_word.length()):
+		var char_str := sell_word[i]
+		var color: Color
+		if i < buffer.length() and buffer[i] == char_str:
+			color = COLOR_TYPED
+		elif sell_word.begins_with(buffer) and buffer.length() > 0:
+			color = COLOR_UNTYPED
+		else:
+			color = COLOR_SELL  # Always orange - SELL costs nothing
+		draw_string(font, Vector2(char_x, y), char_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 28, color)
+		char_x += 20
+
+	# Show sell info
+	if can_sell:
+		draw_string(font, Vector2(center_x + 80, y), "%d towers" % all_towers.size(), HORIZONTAL_ALIGNMENT_LEFT, -1, 16, COLOR_SELL)
+	else:
+		draw_string(font, Vector2(center_x + 80, y), "no towers", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, COLOR_DIM)
+	draw_string(font, Vector2(center_x - 120, y + 22), "Refund: base cost only", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, COLOR_DIM)
+
 	# Draw EXIT option
 	y += 50
 	var cancel_word := "EXIT"
@@ -370,7 +463,7 @@ func draw_tower_selection() -> void:
 
 func draw_position_selection() -> void:
 	var font := ThemeDB.fallback_font
-	var center_x := 640
+	var center_x := get_viewport().get_visible_rect().size.x / 2.0
 	var buffer := BuildManager.get_build_buffer()
 
 	# Title with selected tower
@@ -383,41 +476,33 @@ func draw_position_selection() -> void:
 	draw_string(font, Vector2(center_x - 60, 110), "Cost: %d pts" % stats.get("cost", 0), HORIZONTAL_ALIGNMENT_LEFT, -1, 16, COLOR_HIGHLIGHT)
 
 	# Instructions
-	draw_string(font, Vector2(center_x - 80, 150), "Type 0-9 to select position", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, COLOR_TEXT)
+	draw_string(font, Vector2(center_x - 150, 150), "Move player to position | ENTER: place", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, COLOR_TEXT)
 
-	# Draw position indicators around portal
-	var positions := BuildManager.get_build_positions()
-	for pos in positions:
-		var is_occupied: bool = pos.occupied
-		var bg_color := COLOR_POSITION_OCCUPIED if is_occupied else Color(0.1, 0.1, 0.15, 0.8)
-		var border_color := COLOR_POSITION_OCCUPIED if is_occupied else COLOR_POSITION
-
-		# Draw circle background
-		draw_circle(Vector2(pos.x, pos.y), 25, bg_color)
-
-		# Draw border
-		for i in range(24):
-			var angle := float(i) / 24 * TAU
-			var next_angle := float(i + 1) / 24 * TAU
-			var p1 := Vector2(pos.x + cos(angle) * 25, pos.y + sin(angle) * 25)
-			var p2 := Vector2(pos.x + cos(next_angle) * 25, pos.y + sin(next_angle) * 25)
-			draw_line(p1, p2, border_color, 2)
-
-		# Draw position number
-		var num_str := str(pos.index)
-		var text_color := COLOR_DIM if is_occupied else COLOR_TEXT
-		var text_pos := Vector2(pos.x - 7, pos.y + 8)
-		draw_string(font, text_pos, num_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 22, text_color)
-
-	# Draw existing towers (skip those with animated visuals)
-	var towers := BuildManager.get_towers()
-	for tower in towers:
-		var tower_id := "%d_%d" % [int(tower.x), int(tower.y)]
-		if tower_visuals.has(tower_id) and is_instance_valid(tower_visuals[tower_id]):
-			continue  # Skip - has animated sprite
-		var tower_stats: Dictionary = tower.stats
-		draw_circle(Vector2(tower.x, tower.y), 18, tower_stats.color)
-		draw_circle(Vector2(tower.x, tower.y), 10, tower_stats.inner_color)
+	# Draw cursor crosshair with tower-sized circle
+	var cursor_pos := BuildManager.get_cursor_position()
+	var tower_radius := BuildManager.TOWER_RADIUS
+	var is_valid := BuildManager.is_position_valid()
+	
+	# Circle color based on validity
+	var circle_color := Color(0.0, 1.0, 0.5, 0.4) if is_valid else Color(1.0, 0.2, 0.2, 0.4)
+	var border_color := Color(0.0, 1.0, 0.5, 0.9) if is_valid else Color(1.0, 0.2, 0.2, 0.9)
+	
+	# Draw filled circle (tower preview)
+	draw_circle(cursor_pos, tower_radius, circle_color)
+	
+	# Draw circle border
+	for i in range(32):
+		var angle := float(i) / 32 * TAU
+		var next_angle := float(i + 1) / 32 * TAU
+		var p1 := cursor_pos + Vector2(cos(angle), sin(angle)) * tower_radius
+		var p2 := cursor_pos + Vector2(cos(next_angle), sin(next_angle)) * tower_radius
+		draw_line(p1, p2, border_color, 2)
+	
+	# Draw crosshair
+	var cross_size := 20.0
+	var cross_color := Color(1.0, 1.0, 0.0, 0.9)
+	draw_line(Vector2(cursor_pos.x - cross_size, cursor_pos.y), Vector2(cursor_pos.x + cross_size, cursor_pos.y), cross_color, 2)
+	draw_line(Vector2(cursor_pos.x, cursor_pos.y - cross_size), Vector2(cursor_pos.x, cursor_pos.y + cross_size), cross_color, 2)
 
 	# EXIT option at bottom
 	var y := 580
@@ -439,104 +524,125 @@ func draw_position_selection() -> void:
 
 func draw_upgrade_selection() -> void:
 	var font := ThemeDB.fallback_font
-	var center_x := 640
+	var center_x := get_viewport().get_visible_rect().size.x / 2.0
 	var buffer := BuildManager.get_build_buffer()
 
 	# Title
 	draw_string(font, Vector2(center_x - 100, 80), "UPGRADE MODE", HORIZONTAL_ALIGNMENT_LEFT, -1, 36, COLOR_UPGRADE)
 
 	# Instructions
-	draw_string(font, Vector2(center_x - 120, 120), "Type 0-9 to select tower to upgrade", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, COLOR_TEXT)
+	draw_string(font, Vector2(center_x - 150, 120), "Move player to tower | ENTER: upgrade", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, COLOR_TEXT)
 
-	# Get upgradeable towers info
-	var upgradeable := BuildManager.get_upgradeable_towers()
-	var upgradeable_positions: Dictionary = {}
-	for info in upgradeable:
-		upgradeable_positions[info.position] = info
+	# Draw cursor crosshair
+	var cursor_pos := BuildManager.get_cursor_position()
+	var tower_radius := BuildManager.TOWER_RADIUS
 
-	# Draw position indicators with tower info
-	var positions := BuildManager.get_build_positions()
-	for pos in positions:
-		var tower = BuildManager.get_tower_at_position(pos.index)
-		var has_tower := not tower.is_empty()
+	# Find nearest tower to show upgrade info
+	var nearest_tower = BuildManager.get_nearest_tower_to_cursor()
+	var dist_to_nearest := 999999.0
+	if not nearest_tower.is_empty():
+		dist_to_nearest = cursor_pos.distance_to(Vector2(nearest_tower.x, nearest_tower.y))
 
-		if has_tower:
-			# Position has a tower
-			var level: int = tower.level
-			var tower_type: int = tower.type
-			var is_max := level >= BuildManager.MAX_TOWER_LEVEL
+	var can_upgrade_nearest := dist_to_nearest < tower_radius * 3 and not nearest_tower.is_empty()
 
-			# Determine colors
-			var bg_color: Color
-			var border_color: Color
-			var text_color: Color
+	# Crosshair color based on selection
+	var cross_color := Color(1.0, 0.85, 0.0, 0.9) if can_upgrade_nearest else Color(0.5, 0.5, 0.5, 0.7)
 
-			if is_max:
-				bg_color = Color(0.2, 0.1, 0.2, 0.9)
-				border_color = COLOR_MAX_LEVEL
-				text_color = COLOR_MAX_LEVEL
-			elif upgradeable_positions.has(pos.index):
-				var info = upgradeable_positions[pos.index]
-				if info.can_afford:
-					bg_color = Color(0.15, 0.15, 0.1, 0.9)
-					border_color = COLOR_UPGRADE
-					text_color = COLOR_UPGRADE
-				else:
-					bg_color = Color(0.15, 0.1, 0.1, 0.9)
-					border_color = COLOR_UNAFFORDABLE
-					text_color = COLOR_UNAFFORDABLE
-			else:
-				bg_color = Color(0.1, 0.1, 0.15, 0.9)
-				border_color = COLOR_DIM
-				text_color = COLOR_DIM
+	# Draw crosshair
+	var cross_size := 20.0
+	draw_line(Vector2(cursor_pos.x - cross_size, cursor_pos.y), Vector2(cursor_pos.x + cross_size, cursor_pos.y), cross_color, 2)
+	draw_line(Vector2(cursor_pos.x, cursor_pos.y - cross_size), Vector2(cursor_pos.x, cursor_pos.y + cross_size), cross_color, 2)
 
-			# Draw circle background
-			draw_circle(Vector2(pos.x, pos.y), 30, bg_color)
+	# Draw selection circle around nearest tower if close enough
+	if can_upgrade_nearest:
+		var tower_pos := Vector2(nearest_tower.x, nearest_tower.y)
+		var select_radius := tower_radius + 10
+		for i in range(32):
+			var angle := float(i) / 32 * TAU
+			var next_angle := float(i + 1) / 32 * TAU
+			var p1 := tower_pos + Vector2(cos(angle), sin(angle)) * select_radius
+			var p2 := tower_pos + Vector2(cos(next_angle), sin(next_angle)) * select_radius
+			draw_line(p1, p2, COLOR_UPGRADE, 3)
 
-			# Draw border
-			for i in range(24):
-				var angle := float(i) / 24 * TAU
-				var next_angle := float(i + 1) / 24 * TAU
-				var p1 := Vector2(pos.x + cos(angle) * 30, pos.y + sin(angle) * 30)
-				var p2 := Vector2(pos.x + cos(next_angle) * 30, pos.y + sin(next_angle) * 30)
-				draw_line(p1, p2, border_color, 2)
+		# Show upgrade info
+		var level: int = nearest_tower.level
+		var is_max := level >= BuildManager.MAX_TOWER_LEVEL
+		var info_y := tower_pos.y + 60
 
-			# Draw position number
-			var num_str := str(pos.index)
-			draw_string(font, Vector2(pos.x - 7, pos.y - 8), num_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 18, text_color)
-
-			# Draw tower type abbreviation and level
-			var type_abbr := ""
-			match tower_type:
-				BuildManager.TowerType.GUN:
-					type_abbr = "G"
-				BuildManager.TowerType.FREEZE:
-					type_abbr = "F"
-				BuildManager.TowerType.TESLA:
-					type_abbr = "T"
-
-			var level_text := "%s%d" % [type_abbr, level]
-			if is_max:
-				level_text = "%sMAX" % type_abbr
-			draw_string(font, Vector2(pos.x - 12, pos.y + 18), level_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, text_color)
-
-			# Draw upgrade cost below circle for upgradeable towers
-			if not is_max and upgradeable_positions.has(pos.index):
-				var info = upgradeable_positions[pos.index]
-				var cost_color := COLOR_AFFORDABLE if info.can_afford else COLOR_UNAFFORDABLE
-				draw_string(font, Vector2(pos.x - 18, pos.y + 48), "%d" % info.upgrade_cost, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, cost_color)
+		if is_max:
+			draw_string(font, Vector2(tower_pos.x - 30, info_y), "MAX LEVEL", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, COLOR_MAX_LEVEL)
 		else:
-			# Empty position - draw dimmed
-			draw_circle(Vector2(pos.x, pos.y), 25, Color(0.05, 0.05, 0.08, 0.6))
-			for i in range(24):
-				var angle := float(i) / 24 * TAU
-				var next_angle := float(i + 1) / 24 * TAU
-				var p1 := Vector2(pos.x + cos(angle) * 25, pos.y + sin(angle) * 25)
-				var p2 := Vector2(pos.x + cos(next_angle) * 25, pos.y + sin(next_angle) * 25)
-				draw_line(p1, p2, Color(0.2, 0.2, 0.25, 0.5), 1)
+			var upgrade_cost := BuildManager.get_upgrade_cost(nearest_tower)
+			var can_afford := BuildManager.get_build_points() >= upgrade_cost
+			var cost_color := COLOR_AFFORDABLE if can_afford else COLOR_UNAFFORDABLE
+			draw_string(font, Vector2(tower_pos.x - 40, info_y), "Lv%d -> Lv%d" % [level, level + 1], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, COLOR_UPGRADE)
+			draw_string(font, Vector2(tower_pos.x - 25, info_y + 18), "%d pts" % upgrade_cost, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, cost_color)
 
-			var num_str := str(pos.index)
-			draw_string(font, Vector2(pos.x - 7, pos.y + 8), num_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(0.3, 0.3, 0.35, 0.5))
+	# EXIT option at bottom
+	var y := 580
+	var cancel_word := "EXIT"
+	var char_x := center_x - 60
+	for i in range(cancel_word.length()):
+		var char_str := cancel_word[i]
+		var color: Color
+		if i < buffer.length() and buffer[i] == char_str:
+			color = COLOR_TYPED
+		elif cancel_word.begins_with(buffer) and buffer.length() > 0:
+			color = COLOR_UNTYPED
+		else:
+			color = COLOR_DIM
+		draw_string(font, Vector2(char_x, y), char_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 24, color)
+		char_x += 18
+
+	draw_string(font, Vector2(center_x + 40, y), "or CANCEL or ESC", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, COLOR_DIM)
+
+func draw_sell_selection() -> void:
+	var font := ThemeDB.fallback_font
+	var center_x := get_viewport().get_visible_rect().size.x / 2.0
+	var buffer := BuildManager.get_build_buffer()
+
+	# Title
+	draw_string(font, Vector2(center_x - 80, 80), "SELL MODE", HORIZONTAL_ALIGNMENT_LEFT, -1, 36, COLOR_SELL)
+
+	# Instructions
+	draw_string(font, Vector2(center_x - 180, 120), "Move to tower | ENTER: sell (base cost refund)", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, COLOR_TEXT)
+
+	# Draw cursor crosshair
+	var cursor_pos := BuildManager.get_cursor_position()
+	var tower_radius := BuildManager.TOWER_RADIUS
+
+	# Find nearest tower to show sell info
+	var nearest_tower = BuildManager.get_nearest_tower_to_cursor()
+	var dist_to_nearest := 999999.0
+	if not nearest_tower.is_empty():
+		dist_to_nearest = cursor_pos.distance_to(Vector2(nearest_tower.x, nearest_tower.y))
+
+	var can_sell_nearest := dist_to_nearest < tower_radius * 3 and not nearest_tower.is_empty()
+
+	# Crosshair color based on selection
+	var cross_color := COLOR_SELL if can_sell_nearest else Color(0.5, 0.5, 0.5, 0.7)
+
+	# Draw crosshair
+	var cross_size := 20.0
+	draw_line(Vector2(cursor_pos.x - cross_size, cursor_pos.y), Vector2(cursor_pos.x + cross_size, cursor_pos.y), cross_color, 2)
+	draw_line(Vector2(cursor_pos.x, cursor_pos.y - cross_size), Vector2(cursor_pos.x, cursor_pos.y + cross_size), cross_color, 2)
+
+	# Draw selection circle around nearest tower if close enough
+	if can_sell_nearest:
+		var tower_pos := Vector2(nearest_tower.x, nearest_tower.y)
+		var select_radius := tower_radius + 10
+		for i in range(32):
+			var angle := float(i) / 32 * TAU
+			var next_angle := float(i + 1) / 32 * TAU
+			var p1 := tower_pos + Vector2(cos(angle), sin(angle)) * select_radius
+			var p2 := tower_pos + Vector2(cos(next_angle), sin(next_angle)) * select_radius
+			draw_line(p1, p2, COLOR_SELL, 3)
+
+		# Show sell info
+		var refund := BuildManager.get_tower_base_cost(nearest_tower)
+		var info_y := tower_pos.y + 60
+		draw_string(font, Vector2(tower_pos.x - 30, info_y), "SELL", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, COLOR_SELL)
+		draw_string(font, Vector2(tower_pos.x - 30, info_y + 18), "+%d pts" % refund, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, COLOR_AFFORDABLE)
 
 	# EXIT option at bottom
 	var y := 580
@@ -591,10 +697,26 @@ func draw_placed_towers() -> void:
 				if tower_stats.has("inner_color"):
 					draw_circle(pos, 12, tower_stats.inner_color)
 
-		# Draw targeting line for gun towers
+		# Draw targeting line for gun towers (calculated locally)
 		if tower.has("type") and tower.type == BuildManager.TowerType.GUN:
+			var target_pos: Vector2 = Vector2.ZERO
+			var has_target := false
+
+			# Check local target first (HOST)
 			if tower.has("target") and tower.target != null and is_instance_valid(tower.target):
-				var target_pos: Vector2 = tower.target.global_position
+				target_pos = tower.target.global_position
+				has_target = true
+			else:
+				# Calculate nearest enemy locally (CLIENT)
+				var effect_radius: float = 150.0
+				if tower.has("stats") and tower.stats.has("effect_radius"):
+					effect_radius = tower.stats.effect_radius
+				var nearest = find_nearest_enemy_in_range(pos, effect_radius)
+				if nearest != null:
+					target_pos = nearest.global_position
+					has_target = true
+
+			if has_target:
 				draw_line(pos, target_pos, Color(1, 0.3, 0.3, 0.6), 2)
 
 		# Draw level indicator for upgraded towers (level 2+)

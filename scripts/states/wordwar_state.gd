@@ -79,6 +79,7 @@ func _ready() -> void:
 
 func on_enter(params: Dictionary) -> void:
 	DebugHelper.log_info("WordWarState entered")
+	MenuBackground.hide_background()
 
 	is_multiplayer = params.get("multiplayer", false)
 	game_seed = params.get("seed", randi())
@@ -540,6 +541,10 @@ func _on_round_ended(winner: int) -> void:
 func _on_match_ended(winner: int) -> void:
 	DebugHelper.log_info("Match ended, winner: P%d" % winner)
 
+	# Wait a moment then go to game over
+	await get_tree().create_timer(3.0).timeout
+	_go_to_game_over(winner == local_player, false)
+
 func _on_base_damaged(player: int, damage: int, remaining_hp: int) -> void:
 	DebugHelper.log_debug("P%d base hit for %d damage (HP: %d)" % [player, damage, remaining_hp])
 	if player == local_player:
@@ -552,13 +557,42 @@ func exit_to_menu() -> void:
 
 func _on_network_disconnected(reason: String) -> void:
 	DebugHelper.log_warning("Network disconnected during game: %s" % reason)
-	_return_to_lobby("Connection lost: %s" % reason)
+	_go_to_game_over(false, true)
 
 func _on_player_left(player_id: int) -> void:
 	DebugHelper.log_warning("Player %d left the game" % player_id)
-	_return_to_lobby("Opponent disconnected")
+	_go_to_game_over(false, true)
 
-func _return_to_lobby(message: String) -> void:
+func _go_to_game_over(won: bool, disconnected: bool) -> void:
+	var game_state = WordWarManager.get_state()
+
+	# Build stats for local player
+	var my_wins = game_state.p1_wins if local_player == 1 else game_state.p2_wins
+	var opp_wins = game_state.p2_wins if local_player == 1 else game_state.p1_wins
+	var my_hp = game_state.p1_hp if local_player == 1 else game_state.p2_hp
+	var opp_hp = game_state.p2_hp if local_player == 1 else game_state.p1_hp
+
+	var stats = {
+		"score": my_wins,
+		"opponent_score": opp_wins,
+		"wave": game_state.round,
+		"rounds_won": my_wins,
+		"rounds_lost": opp_wins,
+		"final_hp": my_hp,
+		"opponent_hp": opp_hp,
+		"mode": "WORDWAR",
+		"disconnected": disconnected
+	}
+
+	# Add opponent stats for comparison (if not disconnected)
+	if not disconnected:
+		stats["opponent_stats"] = {
+			"score": opp_wins,
+			"wave": game_state.round,
+			"rounds_won": opp_wins,
+			"final_hp": opp_hp
+		}
+
 	WordWarManager.cleanup()
-	NetworkManager.leave_lobby()
-	StateManager.change_state("lobby", {"message": message})
+	SignalBus.game_over.emit(won, stats)
+	StateManager.change_state("game_over", {"won": won, "stats": stats, "mode": "WORDWAR", "disconnected": disconnected})

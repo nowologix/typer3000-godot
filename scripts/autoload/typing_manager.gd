@@ -41,12 +41,32 @@ func _input(event: InputEvent) -> void:
 
 	if event is InputEventKey and event.pressed and not event.is_echo():
 		var char_code = event.unicode
-		if char_code >= 65 and char_code <= 90:
+		if char_code >= 65 and char_code <= 90:  # A-Z
 			process_char(char(char_code))
-		elif char_code >= 97 and char_code <= 122:
+		elif char_code >= 97 and char_code <= 122:  # a-z
 			process_char(char(char_code).to_upper())
-		elif char_code >= 48 and char_code <= 57 and BuildManager.is_building():
+		elif char_code == 32:  # Space
+			process_char(" ")
+		elif char_code in [33, 34, 39, 44, 45, 46, 58, 59, 63]:  # ! " ' , - . : ; ?
 			process_char(char(char_code))
+		elif char_code >= 48 and char_code <= 57 and BuildManager.is_building():  # 0-9
+			process_char(char(char_code))
+		# German umlauts (uppercase)
+		elif char_code == 196:  # Ä
+			process_char("Ä")
+		elif char_code == 214:  # Ö
+			process_char("Ö")
+		elif char_code == 220:  # Ü
+			process_char("Ü")
+		elif char_code == 223:  # ß
+			process_char("ß")
+		# German umlauts (lowercase -> uppercase)
+		elif char_code == 228:  # ä
+			process_char("Ä")
+		elif char_code == 246:  # ö
+			process_char("Ö")
+		elif char_code == 252:  # ü
+			process_char("Ü")
 
 func process_char(typed_char: String) -> void:
 	total_chars_typed += 1
@@ -135,7 +155,8 @@ func process_char(typed_char: String) -> void:
 			return
 
 	# If exactly one target matches total - lock onto it
-	if all_targets.size() == 1:
+	# But NOT if BUILD also matches (keep parallel tracking)
+	if all_targets.size() == 1 and not build_matches:
 		var t = all_targets[0]
 		if t.type == "powerup":
 			lock_onto_powerup(t.target, new_typed_buffer.length())
@@ -177,6 +198,9 @@ func process_active_enemy(typed_char: String, build_matches: bool, new_build_buf
 		SignalBus.combo_updated.emit(combo)
 		if active_enemy.has_method("update_typed_progress"):
 			active_enemy.update_typed_progress(typed_index)
+		# Reset sniper charge when typing
+		if active_enemy.has_method("reset_charge"):
+			active_enemy.reset_charge()
 		if typed_index >= word.length():
 			complete_word()
 	else:
@@ -261,6 +285,10 @@ func find_enemies_matching(prefix: String) -> Array:
 		if not enemy.is_in_group("enemies"):
 			continue
 
+		# Skip shielded enemies (protected by Shield enemy)
+		if "is_shielded" in enemy and enemy.is_shielded:
+			continue
+
 		if enemy.has_method("get_word") and enemy.has_method("is_alive") and enemy.is_alive():
 			var word = enemy.get_word().to_upper()
 			# Normal match: word starts with prefix
@@ -296,10 +324,10 @@ func find_powerups_matching(prefix: String) -> Array:
 func lock_onto_enemy(enemy: Node, progress: int, typed_text: String = "") -> void:
 	active_enemy = enemy
 	active_powerup = null
-	
+
 	var tower_progress: int = enemy.typed_progress if "typed_progress" in enemy else 0
 	var word = enemy.word.to_upper()
-	
+
 	# Check if player is matching the REMAINING portion (tower-damaged word)
 	# or the full word from the beginning
 	if tower_progress > 0:
@@ -315,12 +343,21 @@ func lock_onto_enemy(enemy: Node, progress: int, typed_text: String = "") -> voi
 			typed_index = progress
 	else:
 		typed_index = progress
-	
+
 	if active_enemy.has_method("update_typed_progress"):
 		active_enemy.update_typed_progress(typed_index)
+		# Reset sniper charge when typing
+		if active_enemy.has_method("reset_charge"):
+			active_enemy.reset_charge()
 	SignalBus.word_started.emit(active_enemy)
 	DebugHelper.log_debug("Locked onto enemy: %s (typed_index: %d, tower: %d)" % [active_enemy.word, typed_index, tower_progress])
-	
+
+	# Word Rush instant-kill: When rush is active, first character kills instantly
+	if CombatSystem.should_instant_kill():
+		DebugHelper.log_info("WORD RUSH INSTANT KILL: %s" % active_enemy.word)
+		complete_word()
+		return
+
 	# Check if word is already complete (e.g. tower did most of the work)
 	if typed_index >= word.length():
 		complete_word()

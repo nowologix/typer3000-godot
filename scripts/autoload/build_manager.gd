@@ -7,8 +7,9 @@ extends Node
 # Build phases
 enum BuildPhase {
 	SELECTING_TOWER,    # Type tower name
-	SELECTING_POSITION, # Type 0-9 for position
-	SELECTING_UPGRADE   # Type 0-9 to select tower to upgrade
+	SELECTING_POSITION, # Move player, ENTER to place
+	SELECTING_UPGRADE,  # Move to tower, ENTER to upgrade
+	SELECTING_SELL      # Move to tower, ENTER to sell
 }
 
 # Tower types matching original game
@@ -92,9 +93,10 @@ const UPGRADE_STATS := {
 
 const MAX_TOWER_LEVEL := 5
 const UPGRADE_WORD := "UPGRADE"
+const SELL_WORD := "SELL"
 const CANCEL_WORD := "CANCEL"
 const EXIT_WORD := "EXIT"
-const POSITION_RADIUS := 120.0  # Distance from portal center
+const TOWER_RADIUS := 40.0  # Visual radius for tower placement cursor
 
 # State
 var is_in_build_mode: bool = false
@@ -104,7 +106,6 @@ var selected_tower_type: int = -1
 var build_points: int = 0
 var towers: Array = []
 var towers_built_this_wave: Dictionary = {}
-var build_positions: Array = []  # [{index, x, y, occupied}]
 var enemy_container: Node2D = null
 var portal_position: Vector2 = Vector2(640, 360)
 var player_ref: Node2D = null
@@ -114,26 +115,25 @@ signal build_mode_entered
 signal build_mode_exited
 signal upgrade_mode_entered
 signal upgrade_mode_exited
+signal sell_mode_entered
+signal sell_mode_exited
 signal tower_selected(tower_type: int, tower_data: Dictionary)
 signal tower_placed(tower: Dictionary)
 signal tower_upgraded(tower: Dictionary)
+signal tower_sold(tower: Dictionary, refund: int)
 signal build_points_changed(points: int)
 signal towers_reset
 
 func _ready() -> void:
-	calculate_build_positions()
 	DebugHelper.log_info("BuildManager initialized")
 
 func _process(_delta: float) -> void:
-	# Update build positions dynamically when in build mode (player can move)
-	if is_in_build_mode and player_ref != null:
-		calculate_build_positions()
-		update_position_occupancy()
+	# Cursor is now moved via input, no automatic updates needed
+	pass
 
 func setup(container: Node2D, portal_pos: Vector2) -> void:
 	enemy_container = container
 	portal_position = portal_pos
-	calculate_build_positions()
 
 func set_player_reference(player: Node2D) -> void:
 	player_ref = player
@@ -146,46 +146,32 @@ func reset() -> void:
 	towers.clear()
 	towers_built_this_wave.clear()
 	build_points = 0
-	calculate_build_positions()
 	towers_reset.emit()
 
 func reset_wave() -> void:
 	towers_built_this_wave.clear()
-	update_position_occupancy()
 
-func calculate_build_positions() -> void:
-	build_positions.clear()
-	var num_positions := 10
-	
-	# Use player position as center when in build mode, otherwise portal
-	var center_pos: Vector2
-	if player_ref != null and is_instance_valid(player_ref):
-		center_pos = player_ref.global_position
-	else:
-		center_pos = portal_position
+func is_position_valid() -> bool:
+	# Check if player position overlaps with existing tower
+	var pos := get_cursor_position()
+	for tower in towers:
+		var dist := pos.distance_to(Vector2(tower.x, tower.y))
+		if dist < TOWER_RADIUS * 2:  # Towers can't overlap
+			return false
+	return true
 
-	for i in range(num_positions):
-		# Start at top (12 o'clock) and go clockwise
-		var angle := (float(i) / num_positions) * TAU - PI / 2
-		var x := center_pos.x + cos(angle) * POSITION_RADIUS
-		var y := center_pos.y + sin(angle) * POSITION_RADIUS
+func get_nearest_tower_to_cursor() -> Dictionary:
+	var nearest: Dictionary = {}
+	var nearest_dist: float = 999999.0
+	var pos := get_cursor_position()
 
-		build_positions.append({
-			"index": i,
-			"x": x,
-			"y": y,
-			"angle": angle,
-			"occupied": false
-		})
+	for tower in towers:
+		var dist := pos.distance_to(Vector2(tower.x, tower.y))
+		if dist < nearest_dist:
+			nearest_dist = dist
+			nearest = tower
 
-func update_position_occupancy() -> void:
-	for pos in build_positions:
-		pos.occupied = false
-		for tower in towers:
-			var dist := sqrt(pow(pos.x - tower.x, 2) + pow(pos.y - tower.y, 2))
-			if dist < 40:
-				pos.occupied = true
-				break
+	return nearest
 
 func add_build_points(points: int) -> void:
 	build_points += points
@@ -206,8 +192,11 @@ func get_build_phase() -> BuildPhase:
 func get_selected_tower_type() -> int:
 	return selected_tower_type
 
-func get_build_positions() -> Array:
-	return build_positions
+func get_cursor_position() -> Vector2:
+	# Cursor follows player position
+	if player_ref and is_instance_valid(player_ref):
+		return player_ref.global_position
+	return portal_position
 
 func get_towers() -> Array:
 	return towers
@@ -222,11 +211,8 @@ func enter_build_mode() -> void:
 	build_buffer = ""
 	selected_tower_type = -1
 
-	calculate_build_positions()
-	update_position_occupancy()
-
 	build_mode_entered.emit()
-	DebugHelper.log_info("Build mode entered")
+	DebugHelper.log_info("Build mode entered - cursor follows player")
 
 func exit_build_mode() -> void:
 	is_in_build_mode = false
@@ -246,13 +232,17 @@ func process_char(c: String) -> Dictionary:
 
 	var upper_char := c.to_upper()
 
-	# Phase 2: Position selection (0-9)
+	# Phase 2: Position selection
 	if build_phase == BuildPhase.SELECTING_POSITION:
 		return process_position_selection(upper_char)
 
-	# Phase 3: Upgrade selection (0-9)
+	# Phase 3: Upgrade selection
 	if build_phase == BuildPhase.SELECTING_UPGRADE:
 		return process_upgrade_selection(upper_char)
+
+	# Phase 4: Sell selection
+	if build_phase == BuildPhase.SELECTING_SELL:
+		return process_sell_selection(upper_char)
 
 	# Phase 1: Tower/Upgrade selection
 	build_buffer += upper_char
@@ -280,12 +270,25 @@ func process_char(c: String) -> Dictionary:
 			# Enter upgrade selection phase
 			build_phase = BuildPhase.SELECTING_UPGRADE
 			build_buffer = ""
-			calculate_build_positions()
-			update_position_occupancy()
 			upgrade_mode_entered.emit()
 
 			result["action"] = "upgrade_mode"
 			result["data"] = {"towers": upgradeable}
+			return result
+		result["action"] = "typing"
+		result["data"] = {"buffer": build_buffer}
+		return result
+
+	# Check for SELL command (always available, costs nothing)
+	if SELL_WORD.begins_with(build_buffer):
+		if build_buffer == SELL_WORD:
+			# Enter sell selection phase
+			build_phase = BuildPhase.SELECTING_SELL
+			build_buffer = ""
+			sell_mode_entered.emit()
+
+			result["action"] = "sell_mode"
+			result["data"] = {"towers": towers}
 			return result
 		result["action"] = "typing"
 		result["data"] = {"buffer": build_buffer}
@@ -309,45 +312,45 @@ func process_char(c: String) -> Dictionary:
 func process_position_selection(c: String) -> Dictionary:
 	var result := {"action": "", "data": null}
 
-	# Check if it's a digit 0-9
-	if c.is_valid_int():
-		var pos_index := int(c)
-		if pos_index >= 0 and pos_index <= 9:
-			var pos = build_positions[pos_index]
-
-			if pos.occupied:
-				result["action"] = "position_occupied"
-				result["data"] = {"position": pos_index}
-				return result
-
-			# Place tower at this position
-			var place_result := attempt_place_tower(selected_tower_type, pos.x, pos.y)
-
-			if place_result.success:
-				result["action"] = "tower_placed"
-				result["data"] = place_result
-				result["data"].position = pos_index
-				exit_build_mode()
-				update_position_occupancy()
-			else:
-				result["action"] = "tower_failed"
-				result["data"] = place_result
-
-			return result
-
-	# Not a digit - check for CANCEL
+	# Check for CANCEL/EXIT
 	build_buffer += c
-	if CANCEL_WORD.begins_with(build_buffer):
-		if build_buffer == CANCEL_WORD:
+	if CANCEL_WORD.begins_with(build_buffer) or EXIT_WORD.begins_with(build_buffer):
+		if build_buffer == CANCEL_WORD or build_buffer == EXIT_WORD:
 			exit_build_mode()
 			result["action"] = "cancel"
 			return result
+		result["action"] = "typing"
+		return result
+	
+	# Any other key cancels position selection
+	build_phase = BuildPhase.SELECTING_TOWER
+	selected_tower_type = -1
+	build_buffer = ""
+	result["action"] = "position_cancelled"
+	return result
+
+# Place tower at player position (called via ENTER key)
+func place_tower_at_cursor() -> Dictionary:
+	var result := {"action": "", "data": null}
+
+	if build_phase != BuildPhase.SELECTING_POSITION:
+		result["action"] = "wrong_phase"
+		return result
+
+	if not is_position_valid():
+		result["action"] = "position_occupied"
+		return result
+
+	var pos := get_cursor_position()
+	var place_result := attempt_place_tower(selected_tower_type, pos.x, pos.y)
+
+	if place_result.success:
+		result["action"] = "tower_placed"
+		result["data"] = place_result
+		exit_build_mode()
 	else:
-		# Invalid - go back to tower selection
-		build_phase = BuildPhase.SELECTING_TOWER
-		selected_tower_type = -1
-		build_buffer = ""
-		result["action"] = "position_cancelled"
+		result["action"] = "tower_failed"
+		result["data"] = place_result
 
 	return result
 
@@ -377,14 +380,12 @@ func check_tower_command() -> Dictionary:
 			selected_tower_type = type
 			build_phase = BuildPhase.SELECTING_POSITION
 			build_buffer = ""
-			update_position_occupancy()
 
 			result["action"] = "tower_selected"
 			result["data"] = {
 				"type": type,
 				"command": command,
-				"stats": stats,
-				"positions": build_positions
+				"stats": stats
 			}
 
 			tower_selected.emit(type, stats)
@@ -402,6 +403,9 @@ func buffer_matches_any_command() -> bool:
 		return true
 
 	if UPGRADE_WORD.begins_with(build_buffer):
+		return true
+
+	if SELL_WORD.begins_with(build_buffer):
 		return true
 
 	for command in TOWER_COMMANDS.values():
@@ -442,6 +446,10 @@ func attempt_place_tower(type: int, x: float, y: float) -> Dictionary:
 
 	# Track wave limit
 	towers_built_this_wave[type] = built_this_wave + 1
+
+	# Spawn placement effect
+	if enemy_container:
+		EffectsManager.spawn_tower_place_effect(Vector2(x, y), enemy_container)
 
 	tower_placed.emit(tower)
 	DebugHelper.log_info("Tower placed: %s at (%d, %d)" % [stats.name, x, y])
@@ -612,85 +620,83 @@ func get_available_towers() -> Array:
 func process_upgrade_selection(c: String) -> Dictionary:
 	var result := {"action": "", "data": null}
 
-	# Check if it's a digit 0-9
-	if c.is_valid_int():
-		var pos_index := int(c)
-		if pos_index >= 0 and pos_index <= 9:
-			# Find tower at this position
-			var tower = get_tower_at_position(pos_index)
-
-			if tower.is_empty():
-				result["action"] = "no_tower_at_position"
-				result["data"] = {"position": pos_index}
-				return result
-
-			# Check if tower can be upgraded
-			if tower.level >= MAX_TOWER_LEVEL:
-				result["action"] = "tower_max_level"
-				result["data"] = {"tower": tower, "max_level": MAX_TOWER_LEVEL}
-				return result
-
-			# Get upgrade cost
-			var upgrade_cost := get_upgrade_cost(tower)
-			if build_points < upgrade_cost:
-				result["action"] = "insufficient_points"
-				result["data"] = {"required": upgrade_cost, "available": build_points}
-				return result
-
-			# Perform upgrade
-			var upgrade_result := upgrade_tower(tower)
-			if upgrade_result.success:
-				result["action"] = "tower_upgraded"
-				result["data"] = upgrade_result
-				exit_build_mode()
-			else:
-				result["action"] = "upgrade_failed"
-				result["data"] = upgrade_result
-
-			return result
-
-	# Not a digit - check for CANCEL/EXIT
+	# Check for CANCEL/EXIT
 	build_buffer += c
 	if CANCEL_WORD.begins_with(build_buffer) or EXIT_WORD.begins_with(build_buffer):
 		if build_buffer == CANCEL_WORD or build_buffer == EXIT_WORD:
 			exit_build_mode()
 			result["action"] = "cancel"
 			return result
-	else:
-		# Invalid - exit upgrade mode
-		build_phase = BuildPhase.SELECTING_TOWER
-		build_buffer = ""
-		upgrade_mode_exited.emit()
-		result["action"] = "upgrade_cancelled"
-
+		result["action"] = "typing"
+		return result
+	
+	# Any other key cancels upgrade mode
+	build_phase = BuildPhase.SELECTING_TOWER
+	build_buffer = ""
+	upgrade_mode_exited.emit()
+	result["action"] = "upgrade_cancelled"
 	return result
 
-func get_tower_at_position(pos_index: int) -> Dictionary:
-	if pos_index < 0 or pos_index >= build_positions.size():
-		return {}
+# Upgrade tower nearest to player (called via ENTER key)
+func upgrade_tower_at_cursor() -> Dictionary:
+	var result := {"action": "", "data": null}
 
-	var pos = build_positions[pos_index]
+	if build_phase != BuildPhase.SELECTING_UPGRADE:
+		result["action"] = "wrong_phase"
+		return result
 
+	var tower = get_nearest_tower_to_cursor()
+
+	if tower.is_empty():
+		result["action"] = "no_tower_nearby"
+		return result
+
+	# Check distance - must be close enough to player
+	var pos := get_cursor_position()
+	var dist := pos.distance_to(Vector2(tower.x, tower.y))
+	if dist > TOWER_RADIUS * 3:
+		result["action"] = "tower_too_far"
+		return result
+	
+	if tower.level >= MAX_TOWER_LEVEL:
+		result["action"] = "tower_max_level"
+		result["data"] = {"tower": tower, "max_level": MAX_TOWER_LEVEL}
+		return result
+	
+	var upgrade_cost := get_upgrade_cost(tower)
+	if build_points < upgrade_cost:
+		result["action"] = "insufficient_points"
+		result["data"] = {"required": upgrade_cost, "available": build_points}
+		return result
+	
+	var upgrade_result := upgrade_tower(tower)
+	if upgrade_result.success:
+		result["action"] = "tower_upgraded"
+		result["data"] = upgrade_result
+		exit_build_mode()
+	else:
+		result["action"] = "upgrade_failed"
+		result["data"] = upgrade_result
+	
+	return result
+
+func get_tower_at_position(pos: Vector2) -> Dictionary:
+	# Find tower at a specific position
 	for tower in towers:
-		var dist := sqrt(pow(pos.x - tower.x, 2) + pow(pos.y - tower.y, 2))
-		if dist < 40:
+		var dist := pos.distance_to(Vector2(tower.x, tower.y))
+		if dist < TOWER_RADIUS * 2:
 			return tower
-
 	return {}
 
 func get_upgradeable_towers() -> Array:
 	var upgradeable = []
 
-	for i in range(build_positions.size()):
-		var tower = get_tower_at_position(i)
-		if tower.is_empty():
-			continue
+	for tower in towers:
 		if tower.level >= MAX_TOWER_LEVEL:
 			continue
 
 		var upgrade_cost := get_upgrade_cost(tower)
 		upgradeable.append({
-			"position": i,
 			"tower": tower,
 			"current_level": tower.level,
 			"next_level": tower.level + 1,
@@ -800,3 +806,87 @@ func get_tower_level_info(tower: Dictionary) -> Dictionary:
 				info.next_stats[stat_name] = stat_values[next_index]
 
 	return info
+
+# Confirm placement/upgrade/sell at player position (ENTER key)
+func confirm_cursor_action() -> Dictionary:
+	if build_phase == BuildPhase.SELECTING_POSITION:
+		return place_tower_at_cursor()
+	elif build_phase == BuildPhase.SELECTING_UPGRADE:
+		return upgrade_tower_at_cursor()
+	elif build_phase == BuildPhase.SELECTING_SELL:
+		return sell_tower_at_cursor()
+	return {"action": "", "data": null}
+
+# ============================================
+# SELL SYSTEM
+# ============================================
+
+func process_sell_selection(c: String) -> Dictionary:
+	var result := {"action": "", "data": null}
+
+	# Check for CANCEL/EXIT
+	build_buffer += c
+	if CANCEL_WORD.begins_with(build_buffer) or EXIT_WORD.begins_with(build_buffer):
+		if build_buffer == CANCEL_WORD or build_buffer == EXIT_WORD:
+			exit_build_mode()
+			result["action"] = "cancel"
+			return result
+		result["action"] = "typing"
+		return result
+
+	# Any other key cancels sell mode
+	build_phase = BuildPhase.SELECTING_TOWER
+	build_buffer = ""
+	sell_mode_exited.emit()
+	result["action"] = "sell_cancelled"
+	return result
+
+# Sell tower nearest to player (called via ENTER key)
+func sell_tower_at_cursor() -> Dictionary:
+	var result := {"action": "", "data": null}
+
+	if build_phase != BuildPhase.SELECTING_SELL:
+		result["action"] = "wrong_phase"
+		return result
+
+	var tower = get_nearest_tower_to_cursor()
+
+	if tower.is_empty():
+		result["action"] = "no_tower_nearby"
+		return result
+
+	# Check distance - must be close enough to player
+	var pos := get_cursor_position()
+	var dist := pos.distance_to(Vector2(tower.x, tower.y))
+	if dist > TOWER_RADIUS * 3:
+		result["action"] = "tower_too_far"
+		return result
+
+	# Get base cost refund (not upgrades)
+	var refund := get_tower_base_cost(tower)
+
+	# Remove tower from list
+	towers.erase(tower)
+
+	# Refund build points
+	build_points += refund
+	build_points_changed.emit(build_points)
+
+	tower_sold.emit(tower, refund)
+	DebugHelper.log_info("Tower sold at (%d, %d) for %d points" % [tower.x, tower.y, refund])
+
+	result["action"] = "tower_sold"
+	result["data"] = {"tower": tower, "refund": refund}
+	exit_build_mode()
+
+	return result
+
+func get_tower_base_cost(tower: Dictionary) -> int:
+	if tower.is_empty() or not tower.has("type"):
+		return 0
+	var tower_type: int = tower.type
+	var stats: Dictionary = TOWER_STATS.get(tower_type, {})
+	return stats.get("cost", 0)
+
+func is_sell_mode() -> bool:
+	return is_in_build_mode and build_phase == BuildPhase.SELECTING_SELL

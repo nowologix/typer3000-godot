@@ -19,6 +19,7 @@ signal combo_reset()
 signal enemy_spawned(enemy: Node)
 signal enemy_killed(enemy: Node, typed: bool)
 signal enemy_reached_portal(enemy: Node)
+signal sniper_fired(sniper: Node, target: Node)
 
 # ============================================
 # PLAYER SIGNALS
@@ -39,6 +40,13 @@ signal portal_destroyed()
 signal wave_started(wave_number: int)
 signal wave_completed(wave_number: int)
 signal all_waves_completed()
+
+# ============================================
+# BOSS SIGNALS
+# ============================================
+signal boss_spawned(boss: Node, level: int)
+signal boss_phase_complete(boss: Node, remaining_hp: int)
+signal boss_defeated(boss: Node)
 
 # ============================================
 # GAME STATE SIGNALS
@@ -85,7 +93,7 @@ signal lobby_join_failed(reason: String)
 signal player_joined(player_id: int, player_name: String)
 signal player_left(player_id: int)
 signal player_ready_changed(player_id: int, ready: bool)
-signal network_game_start(seed: int, mode: String)
+signal network_game_start(seed: int, mode: String, language: String)
 signal network_score_update(player_id: int, score: int)
 signal network_word_completed(player_id: int, word: String)
 signal network_game_over(winner_id: int, final_scores: Dictionary)
@@ -95,6 +103,7 @@ signal network_game_over(winner_id: int, final_scores: Dictionary)
 # ============================================
 signal opponent_score_update(score: int)
 signal opponent_died(reason: String)
+signal vs_opponent_game_over(data: Dictionary)
 
 # ============================================
 # COOP MODE SIGNALS (Host-Authoritative)
@@ -119,6 +128,7 @@ signal coop_game_over(data: Dictionary)
 signal coop_reserve(data: Dictionary)
 signal coop_release(data: Dictionary)
 signal coop_tower_placed(data: Dictionary)
+signal coop_tower_effect(data: Dictionary)
 
 # ============================================
 # STEAM SIGNALS

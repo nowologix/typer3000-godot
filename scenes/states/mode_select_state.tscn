@@ -1,10 +1,7 @@
-[gd_scene load_steps=6 format=3 uid="uid://mode_select_state"]
+[gd_scene load_steps=3 format=3 uid="uid://mode_select_state"]
 
 [ext_resource type="Script" path="res://scripts/states/mode_select_state.gd" id="1_mode"]
 [ext_resource type="FontFile" path="res://assets/fonts/EurostileBold.tres" id="2_bold_font"]
-[ext_resource type="VideoStreamTheora" path="res://assets/videos/vs_preview.ogv" id="3_vs_video"]
-[ext_resource type="VideoStreamTheora" path="res://assets/videos/coop_preview.ogv" id="4_coop_video"]
-[ext_resource type="VideoStreamTheora" path="res://assets/videos/wordwar_preview.ogv" id="5_wordwar_video"]
 
 [node name="ModeSelectState" type="Control"]
 layout_mode = 3
@@ -18,7 +15,7 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-color = Color(0.06, 0.05, 0.08, 1)
+color = Color(0.04, 0.03, 0.06, 0.6)
 
 [node name="VBoxContainer" type="VBoxContainer" parent="."]
 layout_mode = 1
@@ -26,159 +23,22 @@ anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 40.0
-offset_top = 40.0
+offset_top = 30.0
 offset_right = -40.0
-offset_bottom = -40.0
-theme_override_constants/separation = 20
+offset_bottom = -30.0
+theme_override_constants/separation = 15
 
 [node name="Title" type="Label" parent="VBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0, 0.898039, 1, 1)
+theme_override_colors/font_color = Color(0.3, 0.7, 1.0, 1)
 theme_override_fonts/font = ExtResource("2_bold_font")
-theme_override_font_sizes/font_size = 48
+theme_override_font_sizes/font_size = 42
 text = "SELECT MODE"
 horizontal_alignment = 1
 
-[node name="Subtitle" type="Label" parent="VBoxContainer"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.533333, 0.533333, 0.6, 1)
-theme_override_font_sizes/font_size = 18
-text = "Use arrow keys or type the mode name"
-horizontal_alignment = 1
-
-[node name="Spacer1" type="Control" parent="VBoxContainer"]
-custom_minimum_size = Vector2(0, 20)
-layout_mode = 2
-
-[node name="ModeContainer" type="HBoxContainer" parent="VBoxContainer"]
+[node name="CarouselContainer" type="Control" parent="VBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_constants/separation = 30
-alignment = 1
-
-[node name="VSColumn" type="VBoxContainer" parent="VBoxContainer/ModeContainer"]
-layout_mode = 2
-size_flags_horizontal = 4
-theme_override_constants/separation = 10
-
-[node name="ModeTitle" type="Label" parent="VBoxContainer/ModeContainer/VSColumn"]
-layout_mode = 2
-theme_override_colors/font_color = Color(1.0, 0.3, 0.4, 1)
-theme_override_fonts/font = ExtResource("2_bold_font")
-theme_override_font_sizes/font_size = 32
-text = "VS"
-horizontal_alignment = 1
-
-[node name="VSBox" type="PanelContainer" parent="VBoxContainer/ModeContainer/VSColumn"]
-custom_minimum_size = Vector2(300, 280)
-layout_mode = 2
-size_flags_horizontal = 4
-
-[node name="VBox" type="VBoxContainer" parent="VBoxContainer/ModeContainer/VSColumn/VSBox"]
-layout_mode = 2
-theme_override_constants/separation = 15
-
-[node name="VideoPlayer" type="VideoStreamPlayer" parent="VBoxContainer/ModeContainer/VSColumn/VSBox/VBox"]
-custom_minimum_size = Vector2(260, 150)
-layout_mode = 2
-size_flags_horizontal = 4
-stream = ExtResource("3_vs_video")
-autoplay = true
-loop = true
-expand = true
-
-[node name="Description" type="Label" parent="VBoxContainer/ModeContainer/VSColumn/VSBox/VBox"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.7, 0.7, 0.75, 1)
-theme_override_font_sizes/font_size = 14
-text = "Race against your opponent!
-Both play solo - first to lose, loses."
-horizontal_alignment = 1
-autowrap_mode = 2
-
-[node name="COOPColumn" type="VBoxContainer" parent="VBoxContainer/ModeContainer"]
-layout_mode = 2
-size_flags_horizontal = 4
-theme_override_constants/separation = 10
-
-[node name="ModeTitle" type="Label" parent="VBoxContainer/ModeContainer/COOPColumn"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.3, 0.9, 0.4, 1)
-theme_override_fonts/font = ExtResource("2_bold_font")
-theme_override_font_sizes/font_size = 32
-text = "COOP"
-horizontal_alignment = 1
-
-[node name="COOPBox" type="PanelContainer" parent="VBoxContainer/ModeContainer/COOPColumn"]
-custom_minimum_size = Vector2(300, 280)
-layout_mode = 2
-size_flags_horizontal = 4
-
-[node name="VBox" type="VBoxContainer" parent="VBoxContainer/ModeContainer/COOPColumn/COOPBox"]
-layout_mode = 2
-theme_override_constants/separation = 15
-
-[node name="VideoPlayer" type="VideoStreamPlayer" parent="VBoxContainer/ModeContainer/COOPColumn/COOPBox/VBox"]
-custom_minimum_size = Vector2(260, 150)
-layout_mode = 2
-size_flags_horizontal = 4
-stream = ExtResource("4_coop_video")
-autoplay = true
-loop = true
-expand = true
-
-[node name="Description" type="Label" parent="VBoxContainer/ModeContainer/COOPColumn/COOPBox/VBox"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.7, 0.7, 0.75, 1)
-theme_override_font_sizes/font_size = 14
-text = "Team up on the same battlefield!
-One builds, one types - or mix it up!"
-horizontal_alignment = 1
-autowrap_mode = 2
-
-[node name="WORDWARColumn" type="VBoxContainer" parent="VBoxContainer/ModeContainer"]
-layout_mode = 2
-size_flags_horizontal = 4
-theme_override_constants/separation = 10
-
-[node name="ModeTitle" type="Label" parent="VBoxContainer/ModeContainer/WORDWARColumn"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.4, 0.7, 1.0, 1)
-theme_override_fonts/font = ExtResource("2_bold_font")
-theme_override_font_sizes/font_size = 32
-text = "WORD-WAR"
-horizontal_alignment = 1
-
-[node name="WORDWARBox" type="PanelContainer" parent="VBoxContainer/ModeContainer/WORDWARColumn"]
-custom_minimum_size = Vector2(300, 280)
-layout_mode = 2
-size_flags_horizontal = 4
-
-[node name="VBox" type="VBoxContainer" parent="VBoxContainer/ModeContainer/WORDWARColumn/WORDWARBox"]
-layout_mode = 2
-theme_override_constants/separation = 15
-
-[node name="VideoPlayer" type="VideoStreamPlayer" parent="VBoxContainer/ModeContainer/WORDWARColumn/WORDWARBox/VBox"]
-custom_minimum_size = Vector2(260, 150)
-layout_mode = 2
-size_flags_horizontal = 4
-stream = ExtResource("5_wordwar_video")
-autoplay = true
-loop = true
-expand = true
-
-[node name="Description" type="Label" parent="VBoxContainer/ModeContainer/WORDWARColumn/WORDWARBox/VBox"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.7, 0.7, 0.75, 1)
-theme_override_font_sizes/font_size = 14
-text = "Type words to attack!
-Send words flying at your opponent."
-horizontal_alignment = 1
-autowrap_mode = 2
-
-[node name="Spacer2" type="Control" parent="VBoxContainer"]
-custom_minimum_size = Vector2(0, 10)
-layout_mode = 2
 
 [node name="TypedDisplay" type="Label" parent="VBoxContainer"]
 layout_mode = 2
@@ -192,5 +52,5 @@ horizontal_alignment = 1
 layout_mode = 2
 theme_override_colors/font_color = Color(0.533333, 0.533333, 0.6, 1)
 theme_override_font_sizes/font_size = 16
-text = "Press ENTER to confirm or ESC to go back"
+text = "< > to select, ENTER to confirm, ESC to go back"
 horizontal_alignment = 1

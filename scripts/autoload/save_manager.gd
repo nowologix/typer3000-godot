@@ -146,6 +146,8 @@ func apply_settings() -> void:
 	var language = settings.get("language", "EN")
 	if WordSetLoader:
 		WordSetLoader.set_language_string(language)
+	if AphorismLoader:
+		AphorismLoader.set_language_string(language)
 	if Tr:
 		Tr.set_language(language)
 

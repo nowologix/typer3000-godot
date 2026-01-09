@@ -1,199 +1,90 @@
 ## word_set_loader.gd
 ## Manages word sets for different languages, organized by word length
+## Loads words from external JSON files in assets/words/{lang}/
 ## Autoload singleton: WordSetLoader
 extends Node
 
 enum Language { EN, DE }
+enum Difficulty { COMMON, MEDIUM, ADVANCED }
 
 # Available languages in order (for cycling) - add new languages here
 const LANGUAGES := ["EN", "DE"]
+const DIFFICULTIES := ["common", "medium", "advanced"]
+
+# Path to word files
+const WORDS_BASE_PATH := "res://assets/words/"
 
 # Reserved words that should never be used as enemy words (powerups, commands, etc.)
 const RESERVED_WORDS := [
-	"FREEZE", "SHIELD", "DOUBLE", "HEAL", "NUKE", "SLOW",  # Powerup words
+	"FREEZE", "SHIELD", "DOUBLE", "HEAL", "NUKE", "SLOW",  # Powerup words EN
+	"FRIEREN", "SCHILD", "DOPPEL", "HERZ", "ATOM", "ZEIT",  # Powerup words DE
 	"BUILD", "GUN", "TESLA", "WALL",  # Build commands
 	"RESUME", "QUIT"  # Pause menu commands
 ]
 
 var current_language: Language = Language.EN
+var current_difficulty: Difficulty = Difficulty.COMMON
 var used_words: Dictionary = {}  # Track used words per length group
 
-# Words organized by length groups per language
-# Group 1: 2-3 letters (Waves 1-2)
-# Group 2: 4-5 letters (Waves 3-5)
-# Group 3: 6-7 letters (Waves 6-8)
-# Group 4: 8-9 letters (Waves 9-12)
-# Group 5: 10+ letters (Waves 13+)
-
-const WORDS_BY_LENGTH := {
-	Language.EN: {
-		# 2-3 letter words (60 words)
-		2: [
-			"GO", "UP", "IT", "ON", "IN", "TO", "DO", "BE", "WE", "ME",
-			"NO", "SO", "OR", "IF", "AT", "BY", "AN", "AS", "IS", "HE"
-		],
-		3: [
-			"RUN", "CAT", "DOG", "RED", "BIG", "SUN", "SKY", "BOX", "FOX", "HOT",
-			"CUT", "HIT", "WIN", "FLY", "TRY", "CRY", "DRY", "WHY", "OLD", "NEW",
-			"TOP", "MAP", "BAT", "RAT", "HAT", "JAR", "WAR", "CAR", "BAR", "FAR",
-			"GUN", "FUN", "BUS", "CUP", "MUD", "BUD", "RUG", "BUG", "HUG", "JUG"
-		],
-		# 4-5 letter words (100 words)
-		4: [
-			"FIRE", "JUMP", "FAST", "SLOW", "HARD", "EASY", "DARK", "GOLD", "IRON", "WOOD",
-			"STAR", "MOON", "WIND", "RAIN", "SNOW", "ROCK", "TREE", "BIRD", "FISH", "WOLF",
-			"BLUE", "COLD", "WARM", "GOOD", "EVIL", "KING", "HERO", "MAGE", "TANK", "SHIP",
-			"BOLT", "HEAL", "MANA", "AURA", "GLOW", "BYTE", "CODE", "DATA", "HACK", "SYNC",
-			"CHIP", "CORE", "NODE", "WAVE", "BEAM", "DISK", "GRID", "LINK", "LOOP", "MESH"
-		],
-		5: [
-			"BLADE", "ARROW", "SPEAR", "LANCE", "SWORD", "SHIELD", "ARMOR", "STORM", "FLAME",
-			"FROST", "SPARK", "LIGHT", "MAGIC", "SPELL", "CURSE", "BLESS", "POWER", "FORCE",
-			"SPEED", "SKILL", "LEVEL", "QUEST", "WORLD", "REALM", "TOWER", "CROWN", "GLORY",
-			"HONOR", "VALOR", "BRAVE", "SWIFT", "QUICK", "SHARP", "TOUGH", "SOLID", "STEEL",
-			"STONE", "EARTH", "WATER", "GHOST", "DEMON", "ANGEL", "BEAST", "GIANT", "DWARF",
-			"CHAOS", "ORDER", "PEACE", "WRATH", "GRACE"
-		],
-		# 6-7 letter words (100 words)
-		6: [
-			"STRIKE", "ATTACK", "DEFEND", "BATTLE", "COMBAT", "WEAPON", "HUNTER", "KILLER",
-			"SLAYER", "WIZARD", "ARCHER", "KNIGHT", "DRAGON", "UNDEAD", "ZOMBIE", "SPIRIT",
-			"SHADOW", "MYSTIC", "ARCANE", "COSMIC", "DIVINE", "SACRED", "FALLEN", "CURSED",
-			"FROZEN", "BLAZING", "THUNDER", "ENERGY", "PLASMA", "PHOTON", "SYSTEM", "MATRIX",
-			"CIPHER", "VECTOR", "BINARY", "UPLOAD", "DECODE", "REBOOT", "SIGNAL", "SWITCH",
-			"PORTAL", "VORTEX", "BREACH", "RIFT", "SECTOR", "COLONY", "EMPIRE", "LEGION", "HORDE"
-		],
-		7: [
-			"WARRIOR", "FIGHTER", "SOLDIER", "CAPTAIN", "GENERAL", "MARSHAL", "WARLORD",
-			"EMPEROR", "PHOENIX", "CHIMERA", "GRIFFIN", "SERPENT", "VAMPIRE", "WARLOCK",
-			"SORCERY", "ALCHEMY", "ENCHANT", "CONJURE", "SUMMONS", "BANISH", "DESTROY",
-			"SHATTER", "DEMOLISH", "UNLEASH", "EXECUTE", "QUANTUM", "NETWORK", "DIGITAL",
-			"VIRTUAL", "COMPLEX", "PROGRAM", "CLUSTER", "REACTOR", "TURBINE", "CRYSTAL",
-			"ANCIENT", "ETERNAL", "SUPREME", "ULTIMATE", "PRIMAL", "MYTHIC", "HEROIC",
-			"PHANTOM", "SPECTER", "WRAITH", "CYCLONE", "TEMPEST", "INFERNO", "GLACIER"
-		],
-		# 8-9 letter words (80 words)
-		8: [
-			"FIREBALL", "ICESTORM", "THUNDERBOLT", "FIRESTORM", "BLIZZARD", "EARTHQUAKE",
-			"ASSASSIN", "GUARDIAN", "DEFENDER", "CHAMPION", "CONQUEROR", "PREDATOR",
-			"OVERLORD", "DREADLORD", "NIGHTMARE", "DARKNESS", "OBLIVION", "INFINITY",
-			"PROTOCOL", "OVERRIDE", "FIREWALL", "MAINFRAME", "SOFTWARE", "HARDWARE",
-			"DATABASE", "SECURITY", "TERMINAL", "DOWNLOAD", "SEQUENCE", "ALGORITHM",
-			"BERSERKER", "PALADIN", "SENTINEL", "COLOSSUS", "BEHEMOTH", "LEVIATHAN",
-			"MASSACRE", "CARNAGE", "RAMPAGE", "ONSLAUGHT"
-		],
-		9: [
-			"LEGENDARY", "DANGEROUS", "NIGHTMARE", "LIGHTNING", "EXPLOSIVE", "ANNIHILATE",
-			"DEVASTATE", "ERADICATE", "ELIMINATE", "TERMINATE", "OBLITERATE", "DECIMATE",
-			"FIREPOWER", "CYBERNETIC", "AUTOMATIC", "SYNTHETIC", "ENERGETIC", "CHROMATIC",
-			"DESTROYER", "COMMANDER", "GLADIATOR", "IMMORTALS", "VENGEANCE", "RECKONING",
-			"ARCHANGEL", "ARCHDEVIL", "DOOMSAYER", "HARBINGER", "EXECUTIONER", "CONQUEROR",
-			"REBELLION", "EVOLUTION", "EXPLOSION", "IMPLOSION", "COLLISION", "DIMENSION"
-		],
-		# 10+ letter words (60 words)
-		10: [
-			"APOCALYPSE", "ARMAGEDDON", "CATACLYSM", "ANNIHILATOR", "TERMINATOR", "DECIMATOR",
-			"OBLITERATOR", "ELIMINATOR", "DOMINATOR", "DEVASTATOR", "EXTERMINATOR", "INQUISITOR",
-			"JUGGERNAUT", "BEHEMOTH", "COLOSSUS", "MONSTROSITY", "ABOMINATION", "CATASTROPHE",
-			"DESTRUCTION", "REVOLUTION", "EVOLUTION", "CORRUPTION", "DOMINATION", "ELIMINATION",
-			"DEVASTATION", "ANNIHILATION", "OBLITERATION", "EXTERMINATION", "ACCELERATION",
-			"DECELERATION"
-		],
-		11: [
-			"UNSTOPPABLE", "UNBREAKABLE", "INVINCIBLE", "INDESTRUCTIBLE", "OVERWHELMING",
-			"THUNDERSTORM", "OBLITERATION", "ANNIHILATION", "EXTERMINATION", "DISINTEGRATE",
-			"ANNIHILATOR", "BATTLECRUISER", "DREADNOUGHT", "INTERCEPTOR", "MOTHERSHIP"
-		],
-		12: [
-			"EXTERMINATOR", "ANNIHILATING", "OBLITERATING", "OVERWHELMING", "DISINTEGRATION",
-			"TRANSCENDENCE", "METAMORPHOSIS", "MAGNIFICENCE", "EXTRAORDINARY", "CATASTROPHIC"
-		]
-	},
-	Language.DE: {
-		# 2-3 letter words (60 words)
-		2: [
-			"AB", "AN", "DA", "ES", "IM", "JA", "SO", "UM", "WO", "ZU",
-			"AM", "BEI", "EIN", "ICH", "IST", "MAN", "NUR", "SIE", "UND", "VOR"
-		],
-		3: [
-			"LOS", "AUF", "ROT", "TAG", "WEG", "GUT", "NEU", "ALT", "ORT", "RAD",
-			"ARM", "BAU", "EIS", "FEE", "GAS", "HUT", "KUH", "LAB", "MAL", "NAH",
-			"OHR", "RAT", "SEE", "TAL", "UHR", "VIA", "WUT", "ZUG", "BOT", "DUO",
-			"ERZ", "FON", "GAB", "HOF", "JOB", "KIT", "LOS", "MUT", "NUN", "OPA"
-		],
-		# 4-5 letter words (100 words)
-		4: [
-			"HAUS", "BAUM", "BERG", "MOND", "TIER", "BROT", "LAUF", "HALT", "RUND", "FEST",
-			"GOLD", "WALD", "HELD", "KERN", "LOCH", "MEER", "NETZ", "POST", "QUAL", "REIS",
-			"SAFT", "TURM", "UFER", "VOLK", "WAHL", "XRAY", "YOGA", "ZAHL", "BLUT", "DORF",
-			"ERBE", "FILM", "GRAS", "HERR", "IDEE", "JAGD", "KALT", "LAND", "MAUL", "NORM"
-		],
-		5: [
-			"FEUER", "WASSER", "STEIN", "WOLKE", "BLUME", "VOGEL", "FISCH", "PFERD", "KATZE",
-			"HUNDE", "BLITZ", "STURM", "KRAFT", "MACHT", "KRIEG", "KAMPF", "SIEG", "EHRE",
-			"RUHM", "GLORY", "MAGIE", "ZAUBER", "FLUCH", "SEGEN", "GEIST", "SEELE", "TRAUM",
-			"ANGST", "FREUDE", "LIEBE", "HASS", "STOLZ", "TREUE", "GLAUBE", "TAPFER", "STARK",
-			"MUTIG", "WEISE", "KLUG", "SCHLAU", "GROSS", "KLEIN", "DUNKEL", "LICHT", "WELLE",
-			"PHASE", "IMPULS", "STROM", "LASER", "CYBER"
-		],
-		# 6-7 letter words (100 words)
-		6: [
-			"ANGRIFF", "ABWEHR", "PARADE", "AUSFALL", "ATTACKE", "WAFFEN", "KRIEGER",
-			"SOLDAT", "RITTER", "DRACHE", "DAEMON", "ZOMBIE", "VAMPIR", "HEXER", "MAGIER",
-			"SCHATTEN", "MYSTIK", "ARKAN", "KOSMISCH", "HEILIG", "VERFLUCHT", "GEFROREN",
-			"DONNER", "ENERGIE", "PLASMA", "SYSTEM", "MATRIX", "VEKTOR", "SIGNAL", "PORTAL",
-			"VORTEX", "SEKTOR", "KOLONIE", "LEGION", "HORDE", "ARMEE", "TRUPPEN", "FLOTTE",
-			"MARINE", "PANZER", "RAKETE", "BOMBE", "GEWEHR", "KANONE", "SCHILD", "SCHWERT",
-			"KLINGE", "AMULETT"
-		],
-		7: [
-			"KRIEGER", "KAEMPFER", "SOLDAT", "KAPITAEN", "GENERAL", "ADMIRAL", "IMPERATOR",
-			"PHOENIX", "CHIMERA", "GREIF", "SCHLANGE", "VAMPIR", "DAEMONEN", "ZAUBEREI",
-			"ALCHEMIE", "VERZAUBER", "BESCHWOER", "ZERSTOER", "ZERBRECH", "ENTFESSELN",
-			"VERNICHT", "QUANTUM", "NETZWERK", "DIGITAL", "VIRTUELL", "KOMPLEX", "PROGRAMM",
-			"REAKTOR", "TURBINE", "KRISTALL", "ANTIKER", "EWIGER", "OBERSTER", "MYTHISCH",
-			"PHANTOM", "GESPENST", "ZYKLON", "ORKAN", "INFERNO", "GLETSCHER", "TSUNAMI",
-			"ERDBEBEN", "VULKAN", "LAWINE", "TORNADO", "HURRIKAN"
-		],
-		# 8-9 letter words (80 words)
-		8: [
-			"FEUERBALL", "EISSTURM", "BLITZSCHLAG", "FEUERSTURM", "SCHNEESTURM", "ERDBEBEN",
-			"ASSASSINE", "WAECHTER", "VERTEIDIGER", "CHAMPION", "EROBERER", "RAEUBER",
-			"OVERLORD", "ALPTRAUM", "FINSTERNIS", "VERGESSEN", "UNENDLICH", "PROTOKOLL",
-			"FIREWALL", "RECHNER", "SOFTWARE", "HARDWARE", "DATENBANK", "SICHERHEIT",
-			"TERMINAL", "DOWNLOAD", "SEQUENZ", "BERSERKER", "PALADIN", "WAECHTER",
-			"KOLOSS", "BEHEMOTH", "LEVIATHAN", "MASSAKER", "BLUTBAD", "RASEREI", "ANSTURM"
-		],
-		9: [
-			"LEGENDAER", "GEFAEHRLICH", "ALPTRAUM", "BLITZSCHLAG", "EXPLOSIV", "VERNICHTEN",
-			"VERHEEREN", "AUSROTTEN", "ELIMINIER", "BEENDEN", "AUSLOESCHEN", "DEZIMIEREN",
-			"FEUERKRAFT", "KYBERNETIK", "AUTOMATISCH", "SYNTHETISCH", "ENERGETISCH",
-			"ZERSTOERER", "KOMMANDANT", "GLADIATOR", "UNSTERBLICH", "VERGELTUNG", "ABRECHNUNG",
-			"ERZENGEL", "ERZDAEMON", "VERKUNDIGER", "HENKER", "EROBERER", "REBELLION",
-			"EVOLUTION", "EXPLOSION", "IMPLOSION", "KOLLISION", "DIMENSION", "EXPANSION"
-		],
-		# 10+ letter words (60 words)
-		10: [
-			"APOKALYPSE", "ARMAGEDDON", "KATAKLYSMUS", "VERNICHTER", "TERMINATOR", "DEZIMATOR",
-			"AUSLOESCHER", "ELIMINATOR", "DOMINATOR", "VERHEERER", "AUSROTTER", "INQUISITOR",
-			"JUGGERNAUT", "MONSTRUM", "ABSCHEULICH", "KATASTROPHE", "ZERSTOERUNG", "REVOLUTION",
-			"ENTWICKLUNG", "KORRUPTION", "DOMINANZ", "VERNICHTUNG", "AUSLOESCHUNG", "AUSROTTUNG",
-			"BESCHLEUNIG", "VERLANGSAM"
-		],
-		11: [
-			"UNAUFHALTSAM", "UNZERBRECHLICH", "UNBESIEGBAR", "UNZERSTOERBAR", "UEBERWELTLICH",
-			"GEWITTERSTURM", "AUSLOESCHUNG", "VERNICHTUNG", "AUSROTTUNG", "DESINTEGRIEREN",
-			"VERNICHTER", "SCHLACHTKREUZER", "SCHLACHTSCHIFF", "ABFANGJAEGER", "MUTTERSCHIFF"
-		],
-		12: [
-			"EXTERMINIEREN", "VERNICHTEND", "AUSLOESCHEND", "UEBERWAELTIGEND", "DESINTEGRATION",
-			"TRANSZENDENZ", "METAMORPHOSE", "GROSSARTIGKEIT", "AUSSERGEWOEHNLICH", "KATASTROPHAL"
-		]
-	}
-}
+# Loaded words organized by language -> difficulty -> length
+var loaded_words: Dictionary = {}
+var words_loaded: bool = false
 
 func _ready() -> void:
-	DebugHelper.log_info("WordSetLoader initialized with length-based word pools")
+	_load_all_word_files()
+	DebugHelper.log_info("WordSetLoader initialized with %d words" % get_total_word_count())
+
+func _load_all_word_files() -> void:
+	loaded_words.clear()
+
+	for lang in [Language.EN, Language.DE]:
+		loaded_words[lang] = {}
+		var lang_str := "en" if lang == Language.EN else "de"
+
+		for diff in DIFFICULTIES:
+			var file_path: String = WORDS_BASE_PATH + lang_str + "/" + diff + ".json"
+			var words_data := _load_word_file(file_path)
+
+			if not words_data.is_empty():
+				loaded_words[lang][diff] = words_data
+				DebugHelper.log_info("Loaded %s/%s.json with %d length groups" % [lang_str, diff, words_data.size()])
+			else:
+				loaded_words[lang][diff] = {}
+				DebugHelper.log_warning("Failed to load %s" % file_path)
+
+	words_loaded = true
+
+func _load_word_file(file_path: String) -> Dictionary:
+	var result: Dictionary = {}
+
+	if not FileAccess.file_exists(file_path):
+		DebugHelper.log_warning("Word file not found: %s" % file_path)
+		return result
+
+	var file := FileAccess.open(file_path, FileAccess.READ)
+	if file == null:
+		DebugHelper.log_warning("Could not open word file: %s" % file_path)
+		return result
+
+	var json_text := file.get_as_text()
+	file.close()
+
+	var json := JSON.new()
+	var parse_result := json.parse(json_text)
+
+	if parse_result != OK:
+		DebugHelper.log_warning("JSON parse error in %s: %s" % [file_path, json.get_error_message()])
+		return result
+
+	var data: Dictionary = json.get_data()
+	if data.has("words"):
+		# Convert string keys to integers for length lookup
+		var words_dict: Dictionary = data["words"]
+		for length_str in words_dict.keys():
+			var length := int(length_str)
+			result[length] = words_dict[length_str]
+
+	return result
 
 func set_language(lang: Language) -> void:
 	if current_language != lang:
@@ -225,18 +116,70 @@ func cycle_language() -> String:
 	set_language_string(next_lang)
 	return next_lang
 
+func set_difficulty(diff: Difficulty) -> void:
+	if current_difficulty != diff:
+		current_difficulty = diff
+		reset_used_words()
+		DebugHelper.log_info("Difficulty set to: %s" % DIFFICULTIES[diff])
+
+func set_difficulty_string(diff_str: String) -> void:
+	match diff_str.to_lower():
+		"medium":
+			set_difficulty(Difficulty.MEDIUM)
+		"advanced", "hard":
+			set_difficulty(Difficulty.ADVANCED)
+		_:
+			set_difficulty(Difficulty.COMMON)
+
+func get_difficulty() -> Difficulty:
+	return current_difficulty
+
+func get_difficulty_string() -> String:
+	return DIFFICULTIES[current_difficulty]
+
+func cycle_difficulty() -> String:
+	var next_diff := (current_difficulty + 1) % Difficulty.size()
+	set_difficulty(next_diff as Difficulty)
+	return DIFFICULTIES[next_diff]
+
 func reset_used_words() -> void:
 	used_words.clear()
 
+func _get_words_dict_for_current() -> Dictionary:
+	# Returns combined words from all difficulties up to current difficulty
+	var result: Dictionary = {}
+
+	if not loaded_words.has(current_language):
+		return result
+
+	var lang_words: Dictionary = loaded_words[current_language]
+
+	# Include words from common always, and add medium/advanced based on difficulty
+	var diffs_to_include: Array = ["common"]
+	if current_difficulty >= Difficulty.MEDIUM:
+		diffs_to_include.append("medium")
+	if current_difficulty >= Difficulty.ADVANCED:
+		diffs_to_include.append("advanced")
+
+	for diff in diffs_to_include:
+		if lang_words.has(diff):
+			var diff_words: Dictionary = lang_words[diff]
+			for length in diff_words.keys():
+				if not result.has(length):
+					result[length] = []
+				result[length].append_array(diff_words[length])
+
+	return result
+
 func get_words_for_length(length: int) -> Array:
-	var lang_words: Dictionary = WORDS_BY_LENGTH[current_language]
+	var lang_words := _get_words_dict_for_current()
 	if lang_words.has(length):
 		return lang_words[length]
 	return []
 
 func get_words_in_range(min_len: int, max_len: int) -> Array:
 	var result: Array = []
-	var lang_words: Dictionary = WORDS_BY_LENGTH[current_language]
+	var lang_words := _get_words_dict_for_current()
 	for length in lang_words.keys():
 		if length >= min_len and length <= max_len:
 			result.append_array(lang_words[length])
@@ -249,10 +192,10 @@ func get_random_word(options: Dictionary = {}) -> String:
 
 	# Get all words in the length range
 	var available_words: Array = []
-	var lang_words: Dictionary = WORDS_BY_LENGTH[current_language]
+	var lang_words := _get_words_dict_for_current()
 
 	# Track used words key
-	var range_key := "%d_%d_%d" % [current_language, min_length, max_length]
+	var range_key := "%d_%d_%d_%d" % [current_language, current_difficulty, min_length, max_length]
 	if not used_words.has(range_key):
 		used_words[range_key] = []
 
@@ -317,7 +260,7 @@ func get_word_for_wave(wave_number: int, avoid_letters: Array = []) -> String:
 	# Wave 41-45: 7-10 letters (very hard)
 	# Wave 46-50: 8-11 letters (extreme)
 	# Wave 50+:   9-12 letters (maximum)
-	
+
 	var min_len: int
 	var max_len: int
 
@@ -393,7 +336,29 @@ func get_word_complexity(word: String) -> int:
 
 func get_total_word_count() -> int:
 	var count := 0
-	var lang_words: Dictionary = WORDS_BY_LENGTH[current_language]
+	var lang_words := _get_words_dict_for_current()
 	for length in lang_words.keys():
 		count += lang_words[length].size()
 	return count
+
+func get_word_count_by_difficulty(diff: String = "") -> Dictionary:
+	var result: Dictionary = {}
+
+	if not loaded_words.has(current_language):
+		return result
+
+	var lang_words: Dictionary = loaded_words[current_language]
+
+	for diff_name in lang_words.keys():
+		if diff != "" and diff_name != diff:
+			continue
+		var total := 0
+		for length in lang_words[diff_name].keys():
+			total += lang_words[diff_name][length].size()
+		result[diff_name] = total
+
+	return result
+
+func reload_word_files() -> void:
+	_load_all_word_files()
+	reset_used_words()

@@ -6,7 +6,10 @@ extends Node
 # State scene paths
 const STATE_SCENES := {
 	"menu": "res://scenes/states/menu_state.tscn",
+	"solo_mode_select": "res://scenes/states/solo_mode_select_state.tscn",
 	"game": "res://scenes/states/game_state.tscn",
+	"td_map_select": "res://scenes/states/td_map_select_state.tscn",
+	"tower_defence": "res://scenes/states/tower_defence_state.tscn",
 	"pause": "res://scenes/states/pause_state.tscn",
 	"game_over": "res://scenes/states/game_over_state.tscn",
 	"settings": "res://scenes/states/settings_state.tscn",
@@ -16,6 +19,10 @@ const STATE_SCENES := {
 	"wordwar": "res://scenes/states/wordwar_state.tscn",
 	"vs_battle": "res://scenes/states/vs_battle_state.tscn",
 	"coop_game": "res://scenes/states/coop_game_state.tscn",
+	"zen_select": "res://scenes/states/zen_select_state.tscn",
+	"zen_play": "res://scenes/states/zen_play_state.tscn",
+	"evolution_tree": "res://scenes/states/evolution_tree_state.tscn",
+	"music_manager": "res://scenes/states/music_manager_state.tscn",
 }
 
 var current_state: Node = null

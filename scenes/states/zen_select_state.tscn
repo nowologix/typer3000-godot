@@ -1,0 +1,68 @@
+[gd_scene load_steps=3 format=3 uid="uid://zen_select_state"]
+
+[ext_resource type="Script" path="res://scripts/states/zen_select_state.gd" id="1_script"]
+[ext_resource type="FontFile" path="res://assets/fonts/EurostileBold.tres" id="2_font"]
+
+[node name="ZenSelectState" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1_script")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.04, 0.05, 0.08, 0.6)
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 60.0
+offset_top = 40.0
+offset_right = -60.0
+offset_bottom = -40.0
+theme_override_constants/separation = 20
+
+[node name="TitleLabel" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.9, 0.5, 1)
+theme_override_fonts/font = ExtResource("2_font")
+theme_override_font_sizes/font_size = 48
+text = "ZEN MODUS"
+horizontal_alignment = 1
+
+[node name="SubtitleLabel" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.65, 0.7, 1)
+theme_override_font_sizes/font_size = 18
+text = "Wähle ein literarisches Werk"
+horizontal_alignment = 1
+
+[node name="FilterContainer" type="HBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 20
+
+[node name="CarouselContainer" type="Control" parent="VBoxContainer"]
+custom_minimum_size = Vector2(0, 380)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="TypedDisplay" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.9, 0.5, 1)
+theme_override_fonts/font = ExtResource("2_font")
+theme_override_font_sizes/font_size = 28
+horizontal_alignment = 1
+
+[node name="HintLabel" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.42, 0.48, 1)
+theme_override_font_sizes/font_size = 16
+text = "← → Auswahl   ENTER Start   TAB Filter   ESC Zurück"
+horizontal_alignment = 1

@@ -78,6 +78,9 @@ func _load_sounds() -> void:
 		"slowdown": "res://assets/sounds/typer3000_slowdown.mp3",
 		"speedup": "res://assets/sounds/typer3000_speedup.mp3",
 		"freeze_effect": "res://assets/sounds/typer3000-freeze.mp3",
+		"sniper_shot": "res://assets/sounds/typer_snipershot.mp3",
+		"pause": "res://assets/sounds/typer3000_pause.mp3",
+		"unpause": "res://assets/sounds/typer3000_unpause.mp3",
 
 		# Tower sounds
 		"tower_build": "res://assets/audio/sfx/build_01.mp3",
@@ -250,6 +253,9 @@ func play_tesla_zap() -> void:
 	var chosen = variants[randi() % variants.size()]
 	play_sfx(chosen)
 
+func play_sniper_shot() -> void:
+	play_sfx("sniper_shot")
+
 # Combo sounds
 func play_combo_milestone(combo: int) -> void:
 	if combo >= 25:
@@ -288,6 +294,13 @@ const MUSIC_PATHS = {
 	"pause": "res://assets/audio/music/pause-music.mp3",
 }
 
+# TD Map-specific music
+const TD_MAP_MUSIC = {
+	"tokyo": "res://assets/music/maps/td_music_tokyo.mp3",
+	"freudenberg": "res://assets/music/maps/td_music_freudenberg.mp3",
+	"silicon": "res://assets/music/maps/td_music_silicon.mp3",
+}
+
 func play_menu_music() -> void:
 	play_music(MUSIC_PATHS.menu, true)
 
@@ -296,6 +309,15 @@ func play_game_music() -> void:
 
 func play_pause_music() -> void:
 	play_music(MUSIC_PATHS.pause, true)
+
+func play_td_map_music(map_name: String) -> void:
+	var music_path = TD_MAP_MUSIC.get(map_name.to_lower(), "")
+	if music_path != "" and ResourceLoader.exists(music_path):
+		play_music(music_path, true)
+		DebugHelper.log_info("Playing TD map music: %s" % map_name)
+	else:
+		play_game_music()
+		DebugHelper.log_info("TD map music not found for %s, using default" % map_name)
 
 # Play a random pitch variation for variety
 func play_sfx_pitched(sound_name: String, pitch_range: float = 0.1) -> void:
@@ -326,6 +348,12 @@ func play_speedup() -> void:
 
 func play_freeze_effect() -> void:
 	play_sfx("freeze_effect")
+
+func play_pause() -> void:
+	play_sfx("pause")
+
+func play_unpause() -> void:
+	play_sfx("unpause")
 
 # Voice announcements
 func play_voice_welcome() -> void:

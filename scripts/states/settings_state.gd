@@ -1,301 +1,358 @@
 ## settings_state.gd
-## Settings menu state - type commands to navigate and adjust settings
+## Settings menu state - classic layout with sliders, dropdowns, and keyboard/mouse support
 extends Control
 
-const COMMANDS := ["RESOLUTION", "FULLSCREEN", "MASTER", "MUSIC", "SFX", "LANGUAGE", "BACK"]
-const VOLUME_COMMANDS := ["MASTER", "MUSIC", "SFX"]
+enum MenuItem { RESOLUTION, FULLSCREEN, MASTER, MUSIC, SFX, LANGUAGE, MUSIC_MANAGER, BACK }
 
-const COLOR_TYPED := "#7cff00"
-const COLOR_OPTION := "#ffffff"
-const COLOR_VALUE := "#00e5ff"
-const COLOR_INACTIVE := "#444455"
-const TYPED_EFFECT_START := "[wave amp=3.0 freq=8.0]"
-const TYPED_EFFECT_END := "[/wave]"
+const MENU_ITEMS := ["RESOLUTION", "FULLSCREEN", "MASTER", "MUSIC", "SFX", "LANGUAGE", "MUSIC MANAGER", "BACK"]
+const MENU_ITEMS_DE := ["AUFLÖSUNG", "VOLLBILD", "MASTER", "MUSIK", "EFFEKTE", "SPRACHE", "MUSIKMANAGER", "ZURÜCK"]
 
-@onready var typed_display: Label = $CenterContainer/VBoxContainer/TypedDisplay
-@onready var resolution_prompt: RichTextLabel = $CenterContainer/VBoxContainer/ResolutionPrompt
-@onready var fullscreen_prompt: RichTextLabel = $CenterContainer/VBoxContainer/FullscreenPrompt
-@onready var master_prompt: RichTextLabel = $CenterContainer/VBoxContainer/MasterPrompt
-@onready var music_prompt: RichTextLabel = $CenterContainer/VBoxContainer/MusicPrompt
-@onready var sfx_prompt: RichTextLabel = $CenterContainer/VBoxContainer/SfxPrompt
-@onready var language_prompt: RichTextLabel = $CenterContainer/VBoxContainer/LanguagePrompt
-@onready var back_prompt: RichTextLabel = $CenterContainer/VBoxContainer/BackPrompt
-@onready var instructions: Label = $CenterContainer/VBoxContainer/Instructions
+const COLOR_NORMAL := "#ffffff"
+const COLOR_SELECTED := "#7cff00"
+const COLOR_INACTIVE := "#666677"
 
+# UI References
+@onready var title_label: Label = $MarginContainer/VBoxContainer/Title
+@onready var typed_display: Label = $MarginContainer/VBoxContainer/TypedDisplay
+@onready var instructions: Label = $MarginContainer/VBoxContainer/Instructions
+
+# Row references
+@onready var resolution_row: HBoxContainer = $MarginContainer/VBoxContainer/ResolutionRow
+@onready var fullscreen_row: HBoxContainer = $MarginContainer/VBoxContainer/FullscreenRow
+@onready var master_row: HBoxContainer = $MarginContainer/VBoxContainer/MasterRow
+@onready var music_row: HBoxContainer = $MarginContainer/VBoxContainer/MusicRow
+@onready var sfx_row: HBoxContainer = $MarginContainer/VBoxContainer/SfxRow
+@onready var language_row: HBoxContainer = $MarginContainer/VBoxContainer/LanguageRow
+@onready var music_manager_row: HBoxContainer = $MarginContainer/VBoxContainer/MusicManagerRow
+@onready var back_row: HBoxContainer = $MarginContainer/VBoxContainer/BackRow
+
+# Control references
+@onready var resolution_dropdown: OptionButton = $MarginContainer/VBoxContainer/ResolutionRow/OptionButton
+@onready var fullscreen_check: CheckButton = $MarginContainer/VBoxContainer/FullscreenRow/CheckButton
+@onready var master_slider: HSlider = $MarginContainer/VBoxContainer/MasterRow/HSlider
+@onready var master_value: Label = $MarginContainer/VBoxContainer/MasterRow/Value
+@onready var music_slider: HSlider = $MarginContainer/VBoxContainer/MusicRow/HSlider
+@onready var music_value: Label = $MarginContainer/VBoxContainer/MusicRow/Value
+@onready var sfx_slider: HSlider = $MarginContainer/VBoxContainer/SfxRow/HSlider
+@onready var sfx_value: Label = $MarginContainer/VBoxContainer/SfxRow/Value
+@onready var language_dropdown: OptionButton = $MarginContainer/VBoxContainer/LanguageRow/OptionButton
+
+var rows: Array[HBoxContainer] = []
+var selected_index: int = 0
 var typed_buffer: String = ""
-var pulse_time: float = 0.0
-var adjust_mode: bool = false
-var resolution_mode: bool = false
-var selected_option: String = ""
 var return_to: String = "menu"
+
+const RESOLUTION_LABELS := ["720p", "Laptop", "900p", "1080p", "UW-1080", "1440p", "UW-1440", "UW-1600", "4K"]
+const LANGUAGE_NAMES := {"EN": "English", "DE": "Deutsch"}
 
 func _ready() -> void:
 	DebugHelper.log_info("SettingsState ready")
-	typed_buffer = ""
-	adjust_mode = false
-	resolution_mode = false
+	rows = [resolution_row, fullscreen_row, master_row, music_row, sfx_row, language_row, music_manager_row, back_row]
+	setup_controls()
+	connect_signals()
+	load_settings()
 	update_display()
 
 func on_enter(params: Dictionary) -> void:
 	DebugHelper.log_info("SettingsState entered")
-	typed_buffer = ""
-	adjust_mode = false
-	resolution_mode = false
+	MenuBackground.show_background()
 	return_to = params.get("return_to", "menu")
+	typed_buffer = ""
+	selected_index = 0
+	load_settings()
 	update_display()
 
 func on_exit() -> void:
 	DebugHelper.log_info("SettingsState exiting")
 
-func _process(delta: float) -> void:
-	pulse_time += delta * 3.0
+func setup_controls() -> void:
+	# Setup resolution dropdown
+	resolution_dropdown.clear()
+	for i in range(SaveManager.RESOLUTIONS.size()):
+		var res = SaveManager.RESOLUTIONS[i]
+		var label = RESOLUTION_LABELS[i] if i < RESOLUTION_LABELS.size() else ""
+		resolution_dropdown.add_item("%dx%d  %s" % [res.x, res.y, label], i)
+
+	# Setup language dropdown
+	language_dropdown.clear()
+	var languages = WordSetLoader.get_available_languages()
+	for i in range(languages.size()):
+		var lang = languages[i]
+		var display_name = LANGUAGE_NAMES.get(lang, lang)
+		language_dropdown.add_item(display_name, i)
+		language_dropdown.set_item_metadata(i, lang)  # Store actual lang code
+
+	# Setup sliders
+	master_slider.min_value = 0
+	master_slider.max_value = 100
+	master_slider.step = 5
+
+	music_slider.min_value = 0
+	music_slider.max_value = 100
+	music_slider.step = 5
+
+	sfx_slider.min_value = 0
+	sfx_slider.max_value = 100
+	sfx_slider.step = 5
+
+func connect_signals() -> void:
+	resolution_dropdown.item_selected.connect(_on_resolution_selected)
+	fullscreen_check.toggled.connect(_on_fullscreen_toggled)
+	master_slider.value_changed.connect(_on_master_changed)
+	music_slider.value_changed.connect(_on_music_changed)
+	sfx_slider.value_changed.connect(_on_sfx_changed)
+	language_dropdown.item_selected.connect(_on_language_selected)
+
+	# Mouse hover for rows
+	for i in range(rows.size()):
+		var row = rows[i]
+		row.mouse_entered.connect(_on_row_hover.bind(i))
+		row.mouse_filter = Control.MOUSE_FILTER_STOP
+		# Make label clickable too
+		var label = row.get_node("Label") as RichTextLabel
+		if label:
+			label.mouse_filter = Control.MOUSE_FILTER_STOP
+			label.mouse_entered.connect(_on_row_hover.bind(i))
+			label.gui_input.connect(_on_label_click.bind(i))
+
+func _on_row_hover(index: int) -> void:
+	if selected_index != index:
+		selected_index = index
+		SoundManager.play_menu_select()
+		update_display()
+
+func _on_label_click(event: InputEvent, index: int) -> void:
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		selected_index = index
+		activate_current()
+
+func load_settings() -> void:
+	var settings = SaveManager.get_settings()
+
+	resolution_dropdown.select(settings.get("resolution_index", 0))
+	fullscreen_check.button_pressed = settings.get("fullscreen", false)
+
+	master_slider.value = settings.get("master_volume", 1.0) * 100
+	music_slider.value = settings.get("music_volume", 0.7) * 100
+	sfx_slider.value = settings.get("sfx_volume", 1.0) * 100
+
+	var lang = settings.get("language", "EN")
+	for i in range(language_dropdown.item_count):
+		if language_dropdown.get_item_metadata(i) == lang:
+			language_dropdown.select(i)
+			break
+
+	update_value_labels()
+
+func update_value_labels() -> void:
+	master_value.text = "%d%%" % int(master_slider.value)
+	music_value.text = "%d%%" % int(music_slider.value)
+	sfx_value.text = "%d%%" % int(sfx_slider.value)
+
+func _on_resolution_selected(index: int) -> void:
+	SaveManager.set_setting("resolution_index", index)
+	SoundManager.play_word_complete()
+
+func _on_fullscreen_toggled(pressed: bool) -> void:
+	SaveManager.set_setting("fullscreen", pressed)
+	SoundManager.play_word_complete()
+
+func _on_master_changed(value: float) -> void:
+	SaveManager.set_setting("master_volume", value / 100.0)
+	update_value_labels()
+
+func _on_music_changed(value: float) -> void:
+	SaveManager.set_setting("music_volume", value / 100.0)
+	update_value_labels()
+
+func _on_sfx_changed(value: float) -> void:
+	SaveManager.set_setting("sfx_volume", value / 100.0)
+	update_value_labels()
+
+func _on_language_selected(index: int) -> void:
+	var lang = language_dropdown.get_item_metadata(index)
+	if lang == null or lang == "":
+		lang = "EN"
+	WordSetLoader.set_language_string(lang)
+	AphorismLoader.set_language_string(lang)
+	SaveManager.set_setting("language", lang)
+	Tr.set_language(lang)
+	SignalBus.language_changed.emit()
+	SoundManager.play_word_complete()
+	update_display()
 
 func _input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed and not event.is_echo():
-		if resolution_mode:
-			handle_resolution_mode(event)
-		elif adjust_mode:
-			handle_adjust_mode(event)
-		else:
-			handle_navigation(event)
+	if event is InputEventMouseButton and event.pressed:
+		if event.button_index == MOUSE_BUTTON_XBUTTON1:
+			go_back()
+			return
 
-func handle_navigation(event: InputEventKey) -> void:
-	var char_code = event.unicode
-	if event.keycode == KEY_ESCAPE:
+	if event is InputEventKey and event.pressed and not event.is_echo():
+		handle_key_input(event)
+
+func handle_key_input(event: InputEventKey) -> void:
+	var keycode = event.keycode
+
+	# Navigation
+	if keycode == KEY_UP:
+		navigate(-1)
+	elif keycode == KEY_DOWN:
+		navigate(1)
+	elif keycode == KEY_ENTER or keycode == KEY_KP_ENTER:
+		activate_current()
+	elif keycode == KEY_ESCAPE:
 		go_back()
-		return
-	if event.keycode == KEY_BACKSPACE:
+
+	# Adjust values with +/- or left/right
+	if keycode == KEY_LEFT or event.unicode == 45:  # 45 = '-'
+		adjust_current(-1)
+	elif keycode == KEY_RIGHT or event.unicode == 43:  # 43 = '+'
+		adjust_current(1)
+
+	# Typing support
+	var char_code = event.unicode
+	if keycode == KEY_BACKSPACE:
 		if typed_buffer.length() > 0:
 			typed_buffer = typed_buffer.substr(0, typed_buffer.length() - 1)
 			SoundManager.play_menu_select()
 			update_display()
-		return
-	if (char_code >= 65 and char_code <= 90) or (char_code >= 97 and char_code <= 122):
+
+	# Accept A-Z, a-z, and German umlauts
+	var is_letter = (char_code >= 65 and char_code <= 90) or (char_code >= 97 and char_code <= 122)
+	var is_umlaut = char_code in [196, 214, 220, 228, 246, 252]  # ÄÖÜäöü
+	if is_letter or is_umlaut:
 		var typed_char = char(char_code).to_upper()
 		typed_buffer += typed_char
 		SoundManager.play_menu_select()
+		check_typed_command()
 		update_display()
-		check_commands()
 
-func handle_resolution_mode(event: InputEventKey) -> void:
-	if event.keycode == KEY_ESCAPE:
-		resolution_mode = false
-		typed_buffer = ""
-		SoundManager.play_menu_select()
-		update_display()
-		return
+func navigate(direction: int) -> void:
+	selected_index = (selected_index + direction + rows.size()) % rows.size()
+	typed_buffer = ""
+	SoundManager.play_menu_select()
+	update_display()
 
-	var char_code = event.unicode
-	var char_str = char(char_code) if char_code > 0 else ""
+func activate_current() -> void:
+	match selected_index:
+		MenuItem.RESOLUTION:
+			resolution_dropdown.grab_focus()
+			resolution_dropdown.show_popup()
+		MenuItem.FULLSCREEN:
+			fullscreen_check.button_pressed = not fullscreen_check.button_pressed
+		MenuItem.MASTER:
+			master_slider.grab_focus()
+		MenuItem.MUSIC:
+			music_slider.grab_focus()
+		MenuItem.SFX:
+			sfx_slider.grab_focus()
+		MenuItem.LANGUAGE:
+			language_dropdown.grab_focus()
+			language_dropdown.show_popup()
+		MenuItem.MUSIC_MANAGER:
+			StateManager.change_state("music_manager", {"return_to": "settings"})
+		MenuItem.BACK:
+			go_back()
 
-	# Check for digit 0-8 (9 resolutions)
-	if char_str.is_valid_int():
-		var idx := int(char_str)
-		if idx >= 0 and idx < SaveManager.RESOLUTIONS.size():
-			SaveManager.set_setting("resolution_index", idx)
+func adjust_current(direction: int) -> void:
+	var step := 5.0
+	match selected_index:
+		MenuItem.RESOLUTION:
+			var new_idx = (resolution_dropdown.selected + direction + resolution_dropdown.item_count) % resolution_dropdown.item_count
+			resolution_dropdown.select(new_idx)
+			_on_resolution_selected(new_idx)
+		MenuItem.FULLSCREEN:
+			fullscreen_check.button_pressed = not fullscreen_check.button_pressed
+		MenuItem.MASTER:
+			master_slider.value = clamp(master_slider.value + direction * step, 0, 100)
+			SoundManager.play_menu_select()
+		MenuItem.MUSIC:
+			music_slider.value = clamp(music_slider.value + direction * step, 0, 100)
+			SoundManager.play_menu_select()
+		MenuItem.SFX:
+			sfx_slider.value = clamp(sfx_slider.value + direction * step, 0, 100)
+			SoundManager.play_menu_select()
+		MenuItem.LANGUAGE:
+			if language_dropdown.item_count > 0:
+				var current_idx = language_dropdown.selected if language_dropdown.selected >= 0 else 0
+				var new_idx = (current_idx + direction + language_dropdown.item_count) % language_dropdown.item_count
+				language_dropdown.select(new_idx)
+				_on_language_selected(new_idx)
+
+func check_typed_command() -> void:
+	var lang = SaveManager.get_setting("language", "EN")
+	var commands = MENU_ITEMS_DE if lang == "DE" else MENU_ITEMS
+
+	for i in range(commands.size()):
+		if typed_buffer == commands[i]:
 			SoundManager.play_word_complete()
-			resolution_mode = false
+			selected_index = i
 			typed_buffer = ""
-			update_display()
+			if i == MenuItem.BACK:
+				go_back()
+			else:
+				activate_current()
 			return
 
-	SoundManager.play_type_error()
-
-func handle_adjust_mode(event: InputEventKey) -> void:
-	var char_code = event.unicode
-	if event.keycode == KEY_ENTER or event.keycode == KEY_ESCAPE:
-		adjust_mode = false
-		selected_option = ""
-		typed_buffer = ""
-		SoundManager.play_word_complete()
-		update_display()
-		return
-	var char_str = char(char_code) if char_code > 0 else ""
-	if char_str == "+" or event.keycode == KEY_UP or event.keycode == KEY_RIGHT:
-		if selected_option == "LANGUAGE":
-			adjust_language(1)
-		else:
-			adjust_volume(selected_option, 0.1)
-		SoundManager.play_menu_select()
-		update_display()
-	elif char_str == "-" or event.keycode == KEY_DOWN or event.keycode == KEY_LEFT:
-		if selected_option == "LANGUAGE":
-			adjust_language(-1)
-		else:
-			adjust_volume(selected_option, -0.1)
-		SoundManager.play_menu_select()
-		update_display()
-
-func adjust_volume(option: String, delta: float) -> void:
-	var key = ""
-	match option:
-		"MASTER": key = "master_volume"
-		"MUSIC": key = "music_volume"
-		"SFX": key = "sfx_volume"
-	if key != "":
-		var current = SaveManager.get_setting(key, 1.0)
-		var new_value = clamp(current + delta, 0.0, 1.0)
-		SaveManager.set_setting(key, new_value)
-
-func adjust_language(direction: int) -> void:
-	var languages: Array = WordSetLoader.get_available_languages()
-	var current: String = SaveManager.get_setting("language", "EN")
-	var current_idx: int = languages.find(current)
-	if current_idx == -1:
-		current_idx = 0
-	var new_idx: int = (current_idx + direction + languages.size()) % languages.size()
-	var new_lang: String = languages[new_idx]
-	WordSetLoader.set_language_string(new_lang)
-	SaveManager.set_setting("language", new_lang)
-	Tr.set_language(new_lang)
-	SignalBus.language_changed.emit()
-
-func check_commands() -> void:
-	for command in COMMANDS:
-		if typed_buffer == command:
-			SoundManager.play_word_complete()
-			execute_command(command)
-			return
+	# Check if buffer could still match
 	var could_match = false
-	for command in COMMANDS:
+	for command in commands:
 		if command.begins_with(typed_buffer):
 			could_match = true
 			break
+
 	if not could_match and typed_buffer.length() > 0:
 		SoundManager.play_type_error()
 		typed_buffer = ""
-		update_display()
-
-func execute_command(command: String) -> void:
-	typed_buffer = ""
-	match command:
-		"RESOLUTION": enter_resolution_mode()
-		"FULLSCREEN": toggle_fullscreen()
-		"MASTER", "MUSIC", "SFX", "LANGUAGE": enter_adjust_mode(command)
-		"BACK": go_back()
-	update_display()
-
-func enter_resolution_mode() -> void:
-	resolution_mode = true
-
-func toggle_fullscreen() -> void:
-	var current = SaveManager.get_setting("fullscreen", false)
-	SaveManager.set_setting("fullscreen", not current)
-
-func enter_adjust_mode(option: String) -> void:
-	adjust_mode = true
-	selected_option = option
-
 
 func go_back() -> void:
 	SoundManager.play_menu_select()
 	StateManager.change_state(return_to)
 
 func update_display() -> void:
-	var settings = SaveManager.get_settings()
+	var lang = SaveManager.get_setting("language", "EN")
+	var commands = MENU_ITEMS_DE if lang == "DE" else MENU_ITEMS
 
-	if typed_display:
-		if resolution_mode:
-			typed_display.text = "SELECT RESOLUTION [0-8]"
-			typed_display.add_theme_color_override("font_color", GameConfig.COLORS.cyan)
-		elif adjust_mode:
-			typed_display.text = selected_option + " [+/-]"
-			typed_display.add_theme_color_override("font_color", GameConfig.COLORS.acid_green)
-		else:
-			typed_display.text = typed_buffer
-			var matches_any = false
-			for command in COMMANDS:
-				if command.begins_with(typed_buffer) and typed_buffer.length() > 0:
-					matches_any = true
-					break
-			if matches_any:
-				typed_display.add_theme_color_override("font_color", GameConfig.COLORS.acid_green)
-			elif typed_buffer.length() > 0:
-				typed_display.add_theme_color_override("font_color", GameConfig.COLORS.magenta)
+	# Update title
+	title_label.text = Tr.t("SETTINGS", "SETTINGS")
+
+	# Update row labels with selection highlighting
+	for i in range(rows.size()):
+		var row = rows[i]
+		var label = row.get_node("Label") as RichTextLabel
+		if not label:
+			continue
+
+		var command_name = commands[i]
+		var is_selected = (i == selected_index)
+		var typed_len = typed_buffer.length()
+
+		if is_selected:
+			# Highlight selected row
+			if typed_len > 0 and command_name.begins_with(typed_buffer):
+				var typed_part = command_name.substr(0, typed_len)
+				var remaining = command_name.substr(typed_len)
+				label.text = "[color=%s]%s[/color][color=%s]%s[/color]  ◄" % [COLOR_SELECTED, typed_part, COLOR_NORMAL, remaining]
 			else:
-				typed_display.add_theme_color_override("font_color", GameConfig.COLORS.cyan)
+				label.text = "[color=%s]%s[/color]  ◄" % [COLOR_SELECTED, command_name]
+		else:
+			# Non-selected rows
+			if typed_len > 0 and command_name.begins_with(typed_buffer):
+				var typed_part = command_name.substr(0, typed_len)
+				var remaining = command_name.substr(typed_len)
+				label.text = "[color=%s]%s[/color][color=%s]%s[/color]" % [COLOR_SELECTED, typed_part, COLOR_INACTIVE, remaining]
+			elif typed_len > 0:
+				label.text = "[color=%s]%s[/color]" % [COLOR_INACTIVE, command_name]
+			else:
+				label.text = "[color=%s]%s[/color]" % [COLOR_NORMAL, command_name]
 
-	# In resolution mode, show all resolutions with numbers
-	if resolution_mode:
-		update_resolution_list(settings.get("resolution_index", 0))
-	else:
-		update_option_with_value(resolution_prompt, "RESOLUTION", SaveManager.get_resolution_string(settings.get("resolution_index", 0)))
+	# Update typed display
+	if typed_display:
+		typed_display.text = typed_buffer
 
-	update_option_with_value(fullscreen_prompt, "FULLSCREEN", "ON" if settings.get("fullscreen", false) else "OFF")
-	update_option_with_value(master_prompt, "MASTER", "%d%%" % int(settings.get("master_volume", 1.0) * 100), selected_option == "MASTER")
-	update_option_with_value(music_prompt, "MUSIC", "%d%%" % int(settings.get("music_volume", 0.7) * 100), selected_option == "MUSIC")
-	update_option_with_value(sfx_prompt, "SFX", "%d%%" % int(settings.get("sfx_volume", 1.0) * 100), selected_option == "SFX")
-	update_option_with_value(language_prompt, "LANGUAGE", settings.get("language", "EN"), selected_option == "LANGUAGE")
-	update_menu_item(back_prompt, "BACK")
-
+	# Update instructions
 	if instructions:
-		if resolution_mode:
-			instructions.text = "Press 0-8 to select | ESC to cancel"
-		elif adjust_mode:
-			instructions.text = Tr.t("SETTINGS_ADJUST", "Use +/- or Arrow keys | ENTER to confirm")
+		if lang == "DE":
+			instructions.text = "Pfeiltasten navigieren | Enter auswählen | +/- anpassen | ESC zurück"
 		else:
-			instructions.text = Tr.t("SETTINGS_NAV", "Type command | BACKSPACE to delete | ESC to go back")
-
-const RESOLUTION_LABELS := [
-	"720p",      # 1280x720
-	"Laptop",    # 1366x768
-	"900p",      # 1600x900
-	"1080p",     # 1920x1080
-	"UW-1080",   # 2560x1080
-	"1440p",     # 2560x1440
-	"UW-1440",   # 3440x1440
-	"UW-1600",   # 3840x1600
-	"4K",        # 3840x2160
-]
-
-func update_resolution_list(current_idx: int) -> void:
-	if not resolution_prompt:
-		return
-
-	var text := ""
-	for i in range(SaveManager.RESOLUTIONS.size()):
-		var res = SaveManager.RESOLUTIONS[i]
-		var res_str = "%dx%d" % [res.x, res.y]
-		var label = RESOLUTION_LABELS[i] if i < RESOLUTION_LABELS.size() else ""
-		var is_current = (i == current_idx)
-		var marker = "  <" if is_current else ""
-
-		if is_current:
-			text += "[color=%s][%d]  %s   %s%s[/color]\n" % [COLOR_TYPED, i, res_str, label, marker]
-		else:
-			text += "[color=%s][%d][/color]  [color=%s]%s   %s[/color]\n" % [COLOR_VALUE, i, COLOR_OPTION, res_str, label]
-
-	resolution_prompt.text = text
-
-func update_menu_item(label: RichTextLabel, command: String) -> void:
-	if not label:
-		return
-	var typed_len = typed_buffer.length()
-	if adjust_mode:
-		label.text = "[center][color=%s]%s[/color][/center]" % [COLOR_INACTIVE, command]
-	elif typed_len == 0:
-		label.text = "[center][color=%s]%s[/color][/center]" % [COLOR_OPTION, command]
-	elif command.begins_with(typed_buffer):
-		var typed_part = command.substr(0, typed_len)
-		var remaining_part = command.substr(typed_len)
-		label.text = "[center]%s[color=%s]%s[/color]%s[color=%s]%s[/color][/center]" % [TYPED_EFFECT_START, COLOR_TYPED, typed_part, TYPED_EFFECT_END, COLOR_OPTION, remaining_part]
-	else:
-		label.text = "[center][color=%s]%s[/color][/center]" % [COLOR_INACTIVE, command]
-
-func update_option_with_value(label: RichTextLabel, command: String, value: String, is_adjusting: bool = false) -> void:
-	if not label:
-		return
-	var typed_len = typed_buffer.length()
-	var value_color = COLOR_VALUE if not is_adjusting else COLOR_TYPED
-	if adjust_mode and not is_adjusting:
-		label.text = "[center][color=%s]%s[/color]  [color=%s][%s][/color][/center]" % [COLOR_INACTIVE, command, COLOR_INACTIVE, value]
-	elif adjust_mode and is_adjusting:
-		label.text = "[center][color=%s]%s[/color]  [wave amp=2.0 freq=6.0][color=%s][%s][/color][/wave][/center]" % [COLOR_TYPED, command, COLOR_TYPED, value]
-	elif typed_len == 0:
-		label.text = "[center][color=%s]%s[/color]  [color=%s][%s][/color][/center]" % [COLOR_OPTION, command, value_color, value]
-	elif command.begins_with(typed_buffer):
-		var typed_part = command.substr(0, typed_len)
-		var remaining_part = command.substr(typed_len)
-		label.text = "[center]%s[color=%s]%s[/color]%s[color=%s]%s[/color]  [color=%s][%s][/color][/center]" % [TYPED_EFFECT_START, COLOR_TYPED, typed_part, TYPED_EFFECT_END, COLOR_OPTION, remaining_part, value_color, value]
-	else:
-		label.text = "[center][color=%s]%s[/color]  [color=%s][%s][/color][/center]" % [COLOR_INACTIVE, command, COLOR_INACTIVE, value]
+			instructions.text = "Arrow keys to navigate | Enter to select | +/- to adjust | ESC to go back"

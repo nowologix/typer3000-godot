@@ -36,6 +36,9 @@ const ENEMY_COLLISION_RADIUS: float = 15.0
 func _ready() -> void:
 	DebugHelper.log_info("GameState ready")
 
+	# Allow this node to receive input when paused
+	process_mode = Node.PROCESS_MODE_ALWAYS
+
 	# Set process mode for pause panel
 	if pause_panel:
 		pause_panel.process_mode = Node.PROCESS_MODE_WHEN_PAUSED
@@ -58,6 +61,7 @@ func _ready() -> void:
 
 func on_enter(_params: Dictionary) -> void:
 	DebugHelper.log_info("GameState entered")
+	MenuBackground.hide_background()
 
 	# Reset game state
 	score = 0
@@ -74,6 +78,9 @@ func on_enter(_params: Dictionary) -> void:
 	TypingManager.set_enemy_container(enemy_container)
 	TypingManager.reset_stats()
 	TypingManager.enable_typing()
+
+	# Setup combat system (multiplier, word rush)
+	CombatSystem.reset()
 
 	# Setup WordSetLoader with saved language
 	var language = SaveManager.get_setting("language", "EN")
@@ -104,6 +111,9 @@ func on_enter(_params: Dictionary) -> void:
 	if portal and portal.has_method("reset"):
 		portal.reset()
 
+	# Apply progression bonuses (portal HP, evolutions, TD resources)
+	apply_progression_bonuses()
+
 	# Reset player
 	if player and player.has_method("reset"):
 		player.reset()
@@ -122,6 +132,9 @@ func on_exit() -> void:
 	is_paused = false
 	get_tree().paused = false
 	TypingManager.disable_typing()
+
+	# Award progression currency based on game performance
+	award_progression_currency()
 
 	# Disconnect signals
 	if SignalBus.enemy_killed.is_connected(_on_enemy_killed):
@@ -143,9 +156,44 @@ func on_exit() -> void:
 	if SignalBus.powerup_collected.is_connected(_on_powerup_collected):
 		SignalBus.powerup_collected.disconnect(_on_powerup_collected)
 
+func apply_progression_bonuses() -> void:
+	# Apply Portal HP bonus
+	var hp_bonus := ProgressionManager.get_portal_hp_bonus()
+	if hp_bonus > 0 and portal:
+		portal.max_hp += hp_bonus
+		portal.current_hp += hp_bonus
+		DebugHelper.log_info("Applied Portal HP bonus: +%d" % hp_bonus)
+
+	# Apply TD starting resources bonus
+	var td_bonus := ProgressionManager.get_td_starting_resources()
+	if td_bonus > 0:
+		BuildManager.add_build_points(td_bonus)
+		DebugHelper.log_info("Applied TD resources bonus: +%d" % td_bonus)
+
+	# Configure evolutions in CombatSystem
+	CombatSystem.burst_enabled = ProgressionManager.is_burst_mode_enabled()
+	CombatSystem.vampire_enabled = ProgressionManager.is_vampire_enabled()
+	DebugHelper.log_info("Evolutions - Burst: %s, Vampire: %s" % [CombatSystem.burst_enabled, CombatSystem.vampire_enabled])
+
+func award_progression_currency() -> void:
+	# Only award if game was actually played
+	if enemies_killed == 0 and score == 0:
+		return
+
+	var current_wave: int = wave_manager.current_wave if wave_manager else 0
+	var currency := ProgressionManager.calculate_currency(score, enemies_killed, current_wave)
+
+	if currency > 0:
+		ProgressionManager.add_currency(currency)
+		DebugHelper.log_info("Awarded %d progression currency (Score: %d, Kills: %d, Wave: %d)" % [currency, score, enemies_killed, current_wave])
+
 func _process(delta: float) -> void:
 	if not game_active or is_paused:
 		return
+	
+	# Update magnet cursor position during placement
+	if PowerUpManager.is_magnet_placement_mode() and player:
+		PowerUpManager.update_magnet_cursor(player.global_position)
 
 	# Update build towers
 	if enemy_container:
@@ -226,8 +274,13 @@ func spawn_electric_hit_effect(pos: Vector2) -> void:
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.is_echo():
-		# ESC - check build mode first, then pause
+		# ESC - check magnet placement, build mode, then pause
 		if event.keycode == KEY_ESCAPE:
+			if PowerUpManager.is_magnet_placement_mode():
+				PowerUpManager.exit_magnet_placement_mode()
+				TypingManager.enable_typing()
+				get_viewport().set_input_as_handled()
+				return
 			if BuildManager.is_building():
 				BuildManager.exit_build_mode()
 				get_viewport().set_input_as_handled()
@@ -238,6 +291,32 @@ func _input(event: InputEvent) -> void:
 				pause_game()
 			get_viewport().set_input_as_handled()
 			return
+		
+		# ENTER to confirm magnet placement
+		if PowerUpManager.is_magnet_placement_mode():
+			if event.keycode == KEY_ENTER or event.keycode == KEY_KP_ENTER:
+				if PowerUpManager.confirm_magnet_placement():
+					TypingManager.enable_typing()
+					SoundManager.play_tower_build()
+				get_viewport().set_input_as_handled()
+				return
+
+		# ENTER to confirm tower placement/upgrade/sell in build mode
+		if BuildManager.is_building():
+			var phase := BuildManager.get_build_phase()
+			if phase in [BuildManager.BuildPhase.SELECTING_POSITION, BuildManager.BuildPhase.SELECTING_UPGRADE, BuildManager.BuildPhase.SELECTING_SELL]:
+				if event.keycode == KEY_ENTER or event.keycode == KEY_KP_ENTER:
+					var result = BuildManager.confirm_cursor_action()
+					if result.action == "tower_placed":
+						SoundManager.play_tower_build()
+					elif result.action == "tower_upgraded":
+						SoundManager.play_tower_build()
+					elif result.action == "tower_sold":
+						SoundManager.play_tower_build()  # TODO: Add sell sound
+					elif result.action in ["position_occupied", "insufficient_points", "tower_too_far", "no_tower_nearby"]:
+						SoundManager.play_type_error()
+					get_viewport().set_input_as_handled()
+					return
 
 		# Handle pause menu input
 		if is_paused:
@@ -259,6 +338,10 @@ func _input(event: InputEvent) -> void:
 	# Debug: F3 = spawn random powerup
 	if event is InputEventKey and event.keycode == KEY_F3:
 		debug_spawn_powerup()
+
+	# Debug: F4 = skip to next wave
+	if event is InputEventKey and event.keycode == KEY_F4:
+		debug_skip_wave()
 
 func handle_pause_input(event: InputEvent) -> void:
 	if not (event is InputEventKey and event.pressed and not event.is_echo()):
@@ -311,6 +394,7 @@ func pause_game() -> void:
 	get_tree().paused = true
 	if pause_panel:
 		pause_panel.visible = true
+	SoundManager.play_pause()
 	SoundManager.play_pause_music()
 
 func resume_game() -> void:
@@ -322,6 +406,7 @@ func resume_game() -> void:
 	if pause_panel:
 		pause_panel.visible = false
 	TypingManager.enable_typing()
+	SoundManager.play_unpause()
 	SoundManager.play_game_music()
 
 func quit_to_menu() -> void:
@@ -348,6 +433,31 @@ func debug_damage_portal() -> void:
 func debug_spawn_powerup() -> void:
 	PowerUpManager.spawn_random_powerup()
 	DebugHelper.log_debug("Debug: Spawned random powerup")
+
+func debug_spawn_sniper() -> void:
+	if enemy_scene and enemy_container and player:
+		var enemy = enemy_scene.instantiate()
+		var spawn_x = randf_range(100, GameConfig.SCREEN_WIDTH - 100)
+		var spawn_y = randf_range(50, 150)
+		enemy.position = Vector2(spawn_x, spawn_y)
+		
+		# Setup as sniper
+		var word = WordSetLoader.get_random_word({"min_length": 5, "max_length": 8})
+		if word.is_empty():
+			word = "SNIPER"
+		enemy.setup_sniper(word, portal, player)
+		enemy_container.add_child(enemy)
+		DebugHelper.log_debug("Debug: Spawned SNIPER with word: %s" % word)
+
+func debug_skip_wave() -> void:
+	# Kill all enemies to skip wave
+	if enemy_container:
+		for enemy in enemy_container.get_children():
+			if enemy.has_method("die"):
+				enemy.die()
+			else:
+				enemy.queue_free()
+	DebugHelper.log_debug("Debug: Skipped wave (killed all enemies)")
 
 func get_random_word() -> String:
 	# ASSUMPTION: Simple word list for now, will be replaced with JSON loading

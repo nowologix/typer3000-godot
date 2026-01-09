@@ -1,0 +1,112 @@
+[gd_scene load_steps=6 format=3 uid="uid://tower_defence_state"]
+
+[ext_resource type="Script" path="res://scripts/states/tower_defence_state.gd" id="1_td"]
+[ext_resource type="PackedScene" uid="uid://typing_hud" path="res://scenes/ui/typing_hud.tscn" id="2_hud"]
+[ext_resource type="Script" path="res://scripts/ui/build_hud.gd" id="3_build_hud"]
+
+[sub_resource type="Shader" id="vignette_shader"]
+code = "shader_type canvas_item;
+
+uniform float vignette_intensity : hint_range(0.0, 1.0) = 0.6;
+uniform float vignette_opacity : hint_range(0.0, 1.0) = 0.7;
+uniform vec4 vignette_color : source_color = vec4(0.0, 0.0, 0.0, 1.0);
+uniform float vignette_softness : hint_range(0.0, 1.0) = 0.4;
+
+void fragment() {
+    vec2 uv = UV - 0.5;
+    float dist = length(uv * vec2(1.0, 0.5625));
+    float vignette = smoothstep(vignette_intensity, vignette_intensity - vignette_softness, dist);
+    COLOR = vec4(vignette_color.rgb, (1.0 - vignette) * vignette_opacity);
+}
+"
+
+[sub_resource type="ShaderMaterial" id="vignette_material"]
+shader = SubResource("vignette_shader")
+shader_parameter/vignette_intensity = 0.55
+shader_parameter/vignette_opacity = 0.85
+shader_parameter/vignette_color = Color(0, 0, 0, 1)
+shader_parameter/vignette_softness = 0.45
+
+[node name="TowerDefenceState" type="Node2D"]
+script = ExtResource("1_td")
+
+[node name="GameLayer" type="Node2D" parent="."]
+
+[node name="VignetteLayer" type="CanvasLayer" parent="."]
+layer = 5
+
+[node name="Vignette" type="ColorRect" parent="VignetteLayer"]
+material = SubResource("vignette_material")
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="UILayer" type="CanvasLayer" parent="."]
+layer = 10
+
+[node name="TypingHUD" parent="UILayer" instance=ExtResource("2_hud")]
+
+[node name="BuildHUD" type="Control" parent="UILayer"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+script = ExtResource("3_build_hud")
+
+[node name="PauseLayer" type="CanvasLayer" parent="."]
+layer = 15
+
+[node name="PausePanel" type="Control" parent="PauseLayer"]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+process_mode = 3
+
+[node name="Overlay" type="ColorRect" parent="PauseLayer/PausePanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0, 0, 0, 0.7)
+
+[node name="CenterContainer" type="CenterContainer" parent="PauseLayer/PausePanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="PauseLayer/PausePanel/CenterContainer"]
+layout_mode = 2
+theme_override_constants/separation = 30
+
+[node name="Title" type="Label" parent="PauseLayer/PausePanel/CenterContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.690196, 0, 1)
+theme_override_font_sizes/font_size = 48
+text = "PAUSED"
+horizontal_alignment = 1
+
+[node name="ResumePrompt" type="Label" parent="PauseLayer/PausePanel/CenterContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0.898039, 1, 1)
+theme_override_font_sizes/font_size = 24
+text = "RESUME"
+horizontal_alignment = 1
+
+[node name="QuitPrompt" type="Label" parent="PauseLayer/PausePanel/CenterContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.164706, 0.541176, 1)
+theme_override_font_sizes/font_size = 24
+text = "QUIT"
+horizontal_alignment = 1
+
+[node name="TypedDisplay" type="Label" parent="PauseLayer/PausePanel/CenterContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.486275, 1, 0, 1)
+theme_override_font_sizes/font_size = 32
+text = ""
+horizontal_alignment = 1

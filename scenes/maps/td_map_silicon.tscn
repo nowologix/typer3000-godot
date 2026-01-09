@@ -1,0 +1,51 @@
+[gd_scene load_steps=5 format=3 uid="uid://dkcl1ttb1yw0o"]
+
+[ext_resource type="Script" uid="uid://b0dxx0ln4o5cb" path="res://scripts/maps/td_map_base.gd" id="1_map"]
+[ext_resource type="Texture2D" uid="uid://cxvji3cuh4jki" path="res://assets/maps/typer3000map_silicon_map.png" id="2_bg"]
+[ext_resource type="Texture2D" uid="uid://b2gl5g0sn20gf" path="res://assets/maps/typer3000map_silicon_overlay.png" id="3_overlay"]
+
+[sub_resource type="Curve2D" id="Curve2D_path"]
+_data = {
+"points": PackedVector2Array(0, 0, 0, 0, 2487, -18, 0, 0, 0, 0, 2040, 170, 0, 0, 0, 0, 1109, 575, 0, 0, 0, 0, 958, 688, 0, 0, 0, 0, 921, 818, 0, 0, 0, 0, 958, 910, 0, 0, 0, 0, 1042, 968, 0, 0, 0, 0, 1150, 1001, 0, 0, 0, 0, 1301, 964, 0, 0, 0, 0, 2074, 747, 0, 0, 0, 0, 2170, 726, 0, 0, 0, 0, 2262, 738, 0, 0, 0, 0, 2341, 780, 0, 0, 0, 0, 2412, 855, 0, 0, 0, 0, 2433, 910, 0, 0, 0, 0, 2433, 1031, 0, 0, 0, 0, 2399, 1123, 0, 0, 0, 0, 2308, 1189, 0, 0, 0, 0, 1338, 1482)
+}
+point_count = 19
+
+[node name="TDMapSilicon" type="Node2D"]
+script = ExtResource("1_map")
+
+[node name="Background" type="Sprite2D" parent="."]
+position = Vector2(1720, 720)
+texture = ExtResource("2_bg")
+
+[node name="EnemyPath" type="Path2D" parent="."]
+curve = SubResource("Curve2D_path")
+
+[node name="SpawnPoint" type="Marker2D" parent="."]
+position = Vector2(2547, -23)
+gizmo_extents = 50.0
+
+[node name="PortalPoint" type="Marker2D" parent="."]
+position = Vector2(1410, 1464)
+gizmo_extents = 50.0
+
+[node name="BuildZones" type="Node2D" parent="."]
+
+[node name="Zone1" type="Area2D" parent="BuildZones"]
+position = Vector2(500, 500)
+collision_layer = 4
+collision_mask = 0
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="BuildZones/Zone1"]
+polygon = PackedVector2Array(-557, -535, -352, -543, 162, -493, 2221, -497, 2958, -522, 2966, 957, 2823, 969, 2769, 865, 2760, 769, 2685, 740, 2727, 673, 2777, 539, 2706, 347, 2623, 330, 2418, 313, 2230, 364, 2176, 435, 1804, 443, 1766, 376, 1549, 376, 1449, 451, 1474, 648, 1595, 656, 1779, 618, 1791, 489, 2163, 510, 2163, 606, 2134, 639, 2075, 765, 2071, 823, 2167, 936, -577, 978)
+
+[node name="Overlay" type="Sprite2D" parent="."]
+z_index = 100
+position = Vector2(1720, 720)
+texture = ExtResource("3_overlay")
+
+[node name="CoreAreaGuide" type="Line2D" parent="."]
+visible = false
+z_index = 200
+points = PackedVector2Array(440, 0, 3000, 0, 3000, 1440, 440, 1440, 440, 0)
+width = 4.0
+default_color = Color(0, 1, 1, 0.5)

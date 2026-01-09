@@ -23,6 +23,7 @@ config/icon="res://icon.svg"
 [autoload]
 
 GameConfig="*res://scripts/autoload/game_config.gd"
+InputMode="*res://scripts/autoload/input_mode_manager.gd"
 SignalBus="*res://scripts/autoload/signal_bus.gd"
 StateManager="*res://scripts/autoload/state_manager.gd"
 TypingManager="*res://scripts/autoload/typing_manager.gd"
@@ -40,6 +41,14 @@ BuildManager="*res://scripts/autoload/build_manager.gd"
 WordSetLoader="*res://scripts/autoload/word_set_loader.gd"
 StatisticsManager="*res://scripts/autoload/statistics_manager.gd"
 AchievementManager="*res://scripts/autoload/achievement_manager.gd"
+AphorismLoader="*res://scripts/autoload/aphorism_loader.gd"
+MenuBackground="*res://scripts/autoload/menu_background.gd"
+ZenWorksLoader="*res://scripts/autoload/zen_works_loader.gd"
+MusicManager="*res://scripts/autoload/music_manager.gd"
+ZenAudio="*res://scripts/autoload/zen_audio.gd"
+ZenProgressManager="*res://scripts/autoload/zen_progress_manager.gd"
+CombatSystem="*res://scripts/autoload/combat_system.gd"
+ProgressionManager="*res://scripts/autoload/progression_manager.gd"
 
 [display]
 

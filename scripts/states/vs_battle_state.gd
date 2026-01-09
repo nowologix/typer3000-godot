@@ -18,6 +18,14 @@ var game_active: bool = false
 var game_seed: int = 0
 var is_multiplayer: bool = false
 
+# VS mode game over tracking
+var local_died: bool = false
+var opponent_died: bool = false
+var local_final_score: int = 0
+var opponent_final_score: int = 0
+var waiting_for_opponent: bool = false
+var opponent_stats: Dictionary = {}
+
 var enemy_scene: PackedScene
 
 func _ready() -> void:
@@ -31,6 +39,7 @@ func _ready() -> void:
 
 func on_enter(params: Dictionary) -> void:
 	DebugHelper.log_info("VSBattleState entered")
+	MenuBackground.hide_background()
 
 	game_seed = params.get("seed", randi())
 	is_multiplayer = params.get("multiplayer", false)
@@ -40,6 +49,12 @@ func on_enter(params: Dictionary) -> void:
 	opponent_score = 0
 	enemies_killed = 0
 	game_active = true
+	local_died = false
+	opponent_died = false
+	local_final_score = 0
+	opponent_final_score = 0
+	waiting_for_opponent = false
+	opponent_stats = {}
 
 	TypingManager.set_enemy_container(enemy_container)
 	TypingManager.reset_stats()
@@ -66,9 +81,14 @@ func on_enter(params: Dictionary) -> void:
 	SoundManager.play_game_music()
 	SignalBus.game_started.emit()
 
-	# Connect to opponent score updates
+	# Connect to opponent updates in multiplayer
 	if is_multiplayer:
-		SignalBus.opponent_score_update.connect(_on_opponent_score_update)
+		if not SignalBus.opponent_score_update.is_connected(_on_opponent_score_update):
+			SignalBus.opponent_score_update.connect(_on_opponent_score_update)
+		if not SignalBus.vs_opponent_game_over.is_connected(_on_opponent_game_over):
+			SignalBus.vs_opponent_game_over.connect(_on_opponent_game_over)
+		if not SignalBus.network_disconnected.is_connected(_on_network_disconnected):
+			SignalBus.network_disconnected.connect(_on_network_disconnected)
 
 func on_exit() -> void:
 	DebugHelper.log_info("VSBattleState exiting")
@@ -83,8 +103,13 @@ func on_exit() -> void:
 		SignalBus.player_died.disconnect(_on_player_died)
 	if SignalBus.wave_completed.is_connected(_on_wave_completed):
 		SignalBus.wave_completed.disconnect(_on_wave_completed)
-	if is_multiplayer and SignalBus.opponent_score_update.is_connected(_on_opponent_score_update):
-		SignalBus.opponent_score_update.disconnect(_on_opponent_score_update)
+	if is_multiplayer:
+		if SignalBus.opponent_score_update.is_connected(_on_opponent_score_update):
+			SignalBus.opponent_score_update.disconnect(_on_opponent_score_update)
+		if SignalBus.vs_opponent_game_over.is_connected(_on_opponent_game_over):
+			SignalBus.vs_opponent_game_over.disconnect(_on_opponent_game_over)
+		if SignalBus.network_disconnected.is_connected(_on_network_disconnected):
+			SignalBus.network_disconnected.disconnect(_on_network_disconnected)
 
 func _process(_delta: float) -> void:
 	if not game_active:
@@ -116,21 +141,83 @@ func _on_opponent_score_update(new_score: int) -> void:
 	opponent_score = new_score
 	update_hud()
 
-func _trigger_game_over(won: bool, reason: String) -> void:
+func _on_opponent_game_over(data: Dictionary) -> void:
+	# Opponent died
+	opponent_died = true
+	opponent_final_score = int(data.get("score", opponent_score))
+	opponent_stats = data.get("stats", {})
+	DebugHelper.log_info("VS: Opponent died with score %d" % opponent_final_score)
+
+	if local_died:
+		# Both players have died, go to final game over
+		_show_final_results()
+	else:
+		# I'm still alive, I win!
+		_trigger_game_over(true, "Opponent died first")
+
+func _on_network_disconnected(reason: String) -> void:
+	if not game_active:
+		return
+
+	DebugHelper.log_warning("VS: Network disconnected - %s" % reason)
 	game_active = false
 	TypingManager.disable_typing()
 
-	# In VS mode, dying = losing
-	if is_multiplayer:
-		NetworkManager.send_game_over(false, score)
-
+	# Go to game over with disconnect flag (no RETRY available)
 	var stats = TypingManager.get_stats()
 	stats["score"] = score
-	stats["opponent_score"] = opponent_score
 	stats["enemies_destroyed"] = enemies_killed
 	stats["wave"] = wave_manager.current_wave if wave_manager else 0
-	stats["death_reason"] = reason
+	stats["death_reason"] = "Opponent disconnected"
 	stats["mode"] = "VS"
+	stats["disconnected"] = true
+
+	SignalBus.game_over.emit(false, stats)
+	StateManager.change_state("game_over", {"won": false, "stats": stats, "mode": "VS", "disconnected": true})
+
+func _trigger_game_over(won: bool, reason: String) -> void:
+	game_active = false
+	TypingManager.disable_typing()
+	local_died = true
+	local_final_score = score
+
+	# Collect full stats
+	var my_stats = TypingManager.get_stats()
+	my_stats["score"] = score
+	my_stats["enemies_destroyed"] = enemies_killed
+	my_stats["wave"] = wave_manager.current_wave if wave_manager else 0
+
+	# In VS mode, send our game over with full stats to opponent
+	if is_multiplayer:
+		NetworkManager.send_game_over(false, score, my_stats)
+
+		# If opponent hasn't died yet, wait for them
+		if not opponent_died:
+			waiting_for_opponent = true
+			DebugHelper.log_info("VS: Waiting for opponent...")
+			update_hud()
+			return
+
+	# Both are done (or solo), show results
+	_show_final_results()
+
+func _show_final_results() -> void:
+	waiting_for_opponent = false
+
+	# Determine winner
+	var won = local_final_score > opponent_final_score
+	if not opponent_died:
+		# Opponent still alive when we died = we lose
+		won = false
+
+	var stats = TypingManager.get_stats()
+	stats["score"] = local_final_score
+	stats["opponent_score"] = opponent_final_score
+	stats["enemies_destroyed"] = enemies_killed
+	stats["wave"] = wave_manager.current_wave if wave_manager else 0
+	stats["death_reason"] = "VS Match Complete"
+	stats["mode"] = "VS"
+	stats["opponent_stats"] = opponent_stats
 
 	SignalBus.game_over.emit(won, stats)
 	StateManager.change_state("game_over", {"won": won, "stats": stats, "mode": "VS"})
@@ -152,9 +239,15 @@ func update_hud() -> void:
 
 	# Update VS overlay with opponent score
 	if vs_your_score:
-		vs_your_score.text = "YOU: %d" % score
+		if waiting_for_opponent:
+			vs_your_score.text = "YOU: %d (DEAD)" % local_final_score
+		else:
+			vs_your_score.text = "YOU: %d" % score
 	if vs_opponent_score:
-		vs_opponent_score.text = "OPP: %d" % opponent_score
+		if waiting_for_opponent:
+			vs_opponent_score.text = "WAITING FOR OPPONENT..."
+		else:
+			vs_opponent_score.text = "OPP: %d" % opponent_score
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.is_echo():

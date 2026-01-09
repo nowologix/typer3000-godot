@@ -9,11 +9,13 @@ extends CharacterBody2D
 var current_hp: int = 20
 var invincibility_frames: int = 0
 var movement_enabled: bool = true  # For COOP: only P2 can move
+var is_tower_defence_mode: bool = false  # TD mode: invisible cursor only
 
-@onready var sprite: ColorRect = $Sprite
+@onready var sprite: Sprite2D = $Sprite
 @onready var hp_bar: ColorRect = $HPBar
 @onready var hp_bar_fill: ColorRect = $HPBar/Fill
 @onready var collision_shape: CollisionShape2D = $CollisionShape2D
+@onready var shadow: Sprite2D = $Shadow
 
 func _ready() -> void:
 	add_to_group("player")
@@ -23,9 +25,32 @@ func _ready() -> void:
 func _on_player_healed(amount: int) -> void:
 	heal(amount)
 
+func setup_tower_defence_mode() -> void:
+	is_tower_defence_mode = true
+	# Hide visual elements - player becomes invisible cursor
+	if sprite:
+		sprite.visible = false
+	if shadow:
+		shadow.visible = false
+	if hp_bar:
+		hp_bar.visible = false
+	# Disable collision - player can't be hit
+	if collision_shape:
+		collision_shape.disabled = true
+
 func reset() -> void:
 	current_hp = max_hp
 	invincibility_frames = 0
+	is_tower_defence_mode = false
+	# Reset visibility (in case coming from TD mode)
+	if sprite:
+		sprite.visible = true
+	if shadow:
+		shadow.visible = true
+	if hp_bar:
+		hp_bar.visible = true
+	if collision_shape:
+		collision_shape.disabled = false
 	update_display()
 
 func _physics_process(delta: float) -> void:
@@ -53,7 +78,10 @@ func _physics_process(delta: float) -> void:
 	position.x = clamp(position.x, radius, GameConfig.SCREEN_WIDTH - radius)
 	position.y = clamp(position.y, radius, GameConfig.SCREEN_HEIGHT - radius)
 
-	# Handle invincibility frames
+	# Handle invincibility frames (skip in TD mode - no visual player)
+	if is_tower_defence_mode:
+		return
+
 	if invincibility_frames > 0:
 		invincibility_frames -= 1
 		# Blink effect
@@ -63,6 +91,10 @@ func _physics_process(delta: float) -> void:
 		sprite.visible = true
 
 func take_damage(damage: int) -> void:
+	# No damage in Tower Defence mode
+	if is_tower_defence_mode:
+		return
+
 	if invincibility_frames > 0:
 		return
 
@@ -99,11 +131,11 @@ func flash_damage() -> void:
 	if sprite == null:
 		return
 
-	var original_color = sprite.color
-	sprite.color = Color.WHITE
+	var original_modulate = sprite.modulate
+	sprite.modulate = Color.WHITE
 
 	var tween = create_tween()
-	tween.tween_property(sprite, "color", original_color, 0.2)
+	tween.tween_property(sprite, "modulate", original_modulate, 0.2)
 
 func on_death() -> void:
 	DebugHelper.log_info("Player died!")

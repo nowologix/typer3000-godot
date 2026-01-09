@@ -50,6 +50,7 @@ func load_words() -> void:
 
 func on_enter(params: Dictionary) -> void:
 	DebugHelper.log_info("WordWarState entered")
+	MenuBackground.hide_background()
 
 	is_multiplayer = params.get("multiplayer", false)
 	game_seed = params.get("seed", randi())

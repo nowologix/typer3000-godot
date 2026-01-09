@@ -1,0 +1,55 @@
+[gd_scene load_steps=5 format=3 uid="uid://cojhto4rnm83n"]
+
+[ext_resource type="Script" uid="uid://b0dxx0ln4o5cb" path="res://scripts/maps/td_map_base.gd" id="1_map"]
+[ext_resource type="Texture2D" uid="uid://cu4vkccw00mbc" path="res://assets/maps/typer3000map_freudenberg_map.png" id="2_bg"]
+[ext_resource type="Texture2D" uid="uid://lg131o14k5sf" path="res://assets/maps/typer3000map_freudenberg_overlay.png" id="3_overlay"]
+
+[sub_resource type="Curve2D" id="Curve2D_path"]
+_data = {
+"points": PackedVector2Array(0, 0, 0, 0, 976.83905, 286.16205, 0, 0, 0, 0, 1245.7161, 242.01381, 0, 0, 0, 0, 1355.4618, 248.17403, 0, 0, 0, 0, 1455.3304, 264.6013, 0, 0, 0, 0, 1518, 354, 0, 0, 0, 0, 1540.9321, 454.5414, 0, 0, 0, 0, 1621.0466, 505.8766, 0, 0, 0, 0, 1769.2034, 515.11694, 0, 0, 0, 0, 1923.945, 512.0368, 0, 0, 0, 0, 2065.517, 486.3692, 0, 0, 0, 0, 2185.14, 389.8591, 0, 0, 0, 0, 2292.6907, 283.08194, 0, 0, 0, 0, 2371.7078, 248.17403, 0, 0, 0, 0, 2450.7246, 228.66667, 0, 0, 0, 0, 2578.0298, 276.92172, 0, 0, 0, 0, 2632.9026, 383.69888, 0, 0, 0, 0, 2613.1484, 469.94196, 0, 0, 0, 0, 2560.4705, 537.7044, 0, 0, 0, 0, 2265.2544, 754.3388, 0, 0, 0, 0, 2178.5552, 776.92633, 0, 0, 0, 0, 2081.979, 789.24677, 0, 0, 0, 0, 1593.6101, 783.08655, 0, 0, 0, 0, 1369.7288, 783.08655, 0, 0, 0, 0, 1252.3008, 802.5939, 0, 0, 0, 0, 1162.3093, 850.84894, 0, 0, 0, 0, 1062.4407, 959.6795, 0, 0, 0, 0, 1045.9788, 1082.8839, 0, 0, 0, 0, 1207.305, 1191.7145, 0, 0, 0, 0, 1517.8855, 1205.0616, 0, 0, 0, 0, 1785.6652, 1208.1417, 0, 0, 0, 0, 2027.1058, 1214.302, 0, 0, 0, 0, 2099.5383, 1250.2366, 0, 0, 0, 0, 2141.2417, 1304.6519, 0, 0, 0, 0, 2154.4111, 1494.592)
+}
+point_count = 34
+
+[node name="TDMapFreudenberg" type="Node2D"]
+script = ExtResource("1_map")
+
+[node name="Background" type="Sprite2D" parent="."]
+position = Vector2(1720, 720)
+texture = ExtResource("2_bg")
+
+[node name="EnemyPath" type="Path2D" parent="."]
+position = Vector2(164.90735, 25.280716)
+scale = Vector2(0.9111969, 0.97399104)
+curve = SubResource("Curve2D_path")
+
+[node name="SpawnPoint" type="Marker2D" parent="."]
+position = Vector2(1044, 325)
+gizmo_extents = 50.0
+
+[node name="PortalPoint" type="Marker2D" parent="."]
+position = Vector2(2127, 1429)
+gizmo_extents = 50.0
+
+[node name="BuildZones" type="Node2D" parent="."]
+position = Vector2(176, 414)
+
+[node name="Zone1" type="Area2D" parent="BuildZones"]
+position = Vector2(500, 500)
+collision_layer = 4
+collision_mask = 0
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="BuildZones/Zone1"]
+position = Vector2(-458, -709)
+polygon = PackedVector2Array(-230, -221, 3234, -206, 3234, 1243, 1903.869, 1244.5381, -225, 1247)
+
+[node name="Overlay" type="Sprite2D" parent="."]
+z_index = 100
+position = Vector2(1720, 720)
+texture = ExtResource("3_overlay")
+
+[node name="CoreAreaGuide" type="Line2D" parent="."]
+visible = false
+z_index = 200
+points = PackedVector2Array(440, 0, 3000, 0, 3000, 1440, 440, 1440, 440, 0)
+width = 4.0
+default_color = Color(0, 1, 1, 0.5)

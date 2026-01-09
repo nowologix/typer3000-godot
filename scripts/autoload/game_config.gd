@@ -21,7 +21,7 @@ enum GameStates {
 
 # Portal settings
 const PORTAL_MAX_HEALTH: int = 20
-const PORTAL_POSITION := Vector2(SCREEN_WIDTH / 2, SCREEN_HEIGHT - 80)
+const PORTAL_POSITION := Vector2(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)  # Center for 360° gameplay
 
 # Enemy settings
 const ENEMY_BASE_SPEED: float = 80.0

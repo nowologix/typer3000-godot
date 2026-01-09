@@ -1,0 +1,44 @@
+[gd_scene load_steps=3 format=3 uid="uid://td_map_template"]
+
+[ext_resource type="Script" path="res://scripts/maps/td_map_base.gd" id="1_map"]
+
+[sub_resource type="Curve2D" id="Curve2D_path"]
+_data = {
+"points": PackedVector2Array(0, 0, 0, 0, 390, 720, 0, 0, 0, 0, 640, 720, 0, 0, 0, 0, 900, 400, 0, 0, 0, 0, 1400, 400, 0, 0, 0, 0, 1700, 1000, 0, 0, 0, 0, 2200, 1000, 0, 0, 0, 0, 2500, 720, 0, 0, 0, 0, 3050, 720)
+}
+
+[node name="TDMap" type="Node2D"]
+script = ExtResource("1_map")
+
+[node name="Background" type="Sprite2D" parent="."]
+z_index = -100
+position = Vector2(1720, 720)
+
+[node name="EnemyPath" type="Path2D" parent="."]
+curve = SubResource("Curve2D_path")
+
+[node name="SpawnPoint" type="Marker2D" parent="."]
+position = Vector2(390, 720)
+gizmo_extents = 50.0
+
+[node name="PortalPoint" type="Marker2D" parent="."]
+position = Vector2(3050, 720)
+gizmo_extents = 50.0
+
+[node name="BuildZones" type="Node2D" parent="."]
+
+[node name="PathVisual" type="Line2D" parent="."]
+z_index = -50
+points = PackedVector2Array(390, 720, 640, 720, 900, 400, 1400, 400, 1700, 1000, 2200, 1000, 2500, 720, 3050, 720)
+width = 80.0
+default_color = Color(0.545098, 0.411765, 0.266667, 1)
+
+[node name="Overlay" type="Sprite2D" parent="."]
+z_index = 100
+position = Vector2(1720, 720)
+
+[node name="CoreAreaGuide" type="Line2D" parent="."]
+z_index = 200
+points = PackedVector2Array(440, 0, 3000, 0, 3000, 1440, 440, 1440, 440, 0)
+width = 4.0
+default_color = Color(0, 1, 1, 0.3)
